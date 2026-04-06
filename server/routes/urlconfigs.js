@@ -3,24 +3,34 @@ import urlConfigService from '../services/urlConfigService.js';
 
 const router = express.Router();
 
+function resolveWebNodeId(bodyOrQuery) {
+  const b = bodyOrQuery ?? {};
+  const raw =
+    b.webNodeId ??
+    b.web_node_id ??
+    b.frontnodeId ??
+    b.frontnode_id;
+  const n = typeof raw === 'number' ? raw : parseInt(String(raw ?? ''), 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 // Create URL configs from deployment data
 router.post('/create-from-deployment', async (req, res) => {
   try {
-    const { urlConfigs, frontnodeId } = req.body;
+    const { urlConfigs } = req.body;
+    const webNodeId = resolveWebNodeId(req.body);
     
-    if (!urlConfigs || !Array.isArray(urlConfigs) || !frontnodeId) {
+    if (!urlConfigs || !Array.isArray(urlConfigs) || !webNodeId) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid request data. urlConfigs array and frontnodeId are required.'
+        message: 'Invalid request data. urlConfigs array and webNodeId (or legacy frontnodeId) are required.'
       });
     }
 
-    // First, soft delete existing URL configs for this frontend node
-    await urlConfigService.deleteUrlConfigsByFrontendNode(frontnodeId);
+    await urlConfigService.deleteUrlConfigsByWebNode(webNodeId);
     
-    // Create new URL configs from deployment data
     console.log(urlConfigs, "urlConfigs");
-    const createdConfigs = await urlConfigService.createUrlConfigsFromDeployment(urlConfigs, frontnodeId);
+    const createdConfigs = await urlConfigService.createUrlConfigsFromDeployment(urlConfigs, webNodeId);
     
     res.json({
       success: true,
@@ -38,11 +48,11 @@ router.post('/create-from-deployment', async (req, res) => {
   }
 });
 
-// Get URL configs by frontend node ID
-router.get('/frontend-node/:frontnodeId', async (req, res) => {
+// Get URL configs by web preview node ID
+router.get('/web-node/:webNodeId', async (req, res) => {
   try {
-    const { frontnodeId } = req.params;
-    const configs = await urlConfigService.getUrlConfigsByFrontendNode(parseInt(frontnodeId));
+    const { webNodeId } = req.params;
+    const configs = await urlConfigService.getUrlConfigsByWebNode(parseInt(webNodeId, 10));
     
     res.json({
       success: true,
@@ -114,7 +124,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    await urlConfigService.deleteUrlConfig(parseInt(id));
+    await urlConfigService.deleteUrlConfigById(parseInt(id, 10));
     
     res.json({
       success: true,

@@ -14,17 +14,9 @@ class User extends Model {
       foreignKey: 'created_by',
       as: 'projects',
     });
-    User.hasMany(models.BackendNode, {
+    User.hasMany(models.Node, {
       foreignKey: 'created_by',
-      as: 'backendNodes',
-    });
-    User.hasMany(models.FrontendNode, {
-      foreignKey: 'created_by',
-      as: 'frontendNodes',
-    });
-    User.hasMany(models.Branch, {
-      foreignKey: 'created_by',
-      as: 'branches',
+      as: 'nodes',
     });
   }
 }

@@ -1,17 +1,6 @@
 import { useState } from "react";
+import { Layout, Button, Space, Dropdown, Avatar } from "antd";
 import {
-  Layout,
-  Button,
-  Space,
-  Badge,
-  Typography,
-  Dropdown,
-  Avatar,
-} from "antd";
-import {
-  BellOutlined,
-  SearchOutlined,
-  BranchesOutlined,
   MoonOutlined,
   SunOutlined,
   UserOutlined,
@@ -24,7 +13,6 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 const { Header, Content } = Layout;
-const { Text } = Typography;
 
 const MainLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -66,32 +54,29 @@ const MainLayout = ({ children }) => {
   ];
 
   return (
-    <Layout>
+    <Layout
+      className={`min-h-screen ${isDark ? "bg-neutral-950" : "bg-[#f5f5f5]"}`}
+      style={{ minHeight: "100vh" }}
+    >
       <Sidebar
         collapsed={collapsed}
         onCollapse={() => setCollapsed(!collapsed)}
       />
 
       <Layout
-        className="!min-h-screen flex !flex-col !bg-gray-50 dark:!bg-neutral-900"
+        className={`min-h-screen ${isDark ? "bg-neutral-950" : "bg-[#f5f5f5]"}`}
         style={{
           marginLeft: collapsed ? 80 : 280,
           transition: "margin-left 0.2s",
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
         }}
       >
         {/* Header */}
         <Header
-          className={`${isDark ? "dark:!bg-black" : "!bg-white"} border-b border-gray-200  px-6 flex items-center justify-between shadow-sm`}
+          className={`${isDark ? "dark:!bg-black" : "!bg-white"} border-b border-gray-200 px-6 flex items-center justify-end shadow-sm`}
         >
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <BranchesOutlined className="text-white text-lg" />
-            </div>
-            <Text className="text-lg font-bold text-black dark:text-white">
-              PREVIEW BUILDER
-            </Text>
-          </div>
-
           <div className="flex items-center space-x-4">
             <Space size="middle">
               <Button
@@ -127,8 +112,10 @@ const MainLayout = ({ children }) => {
         </Header>
 
         {/* Content */}
-        <Content className="flex-1 min-h-0 overflow-y-auto bg-gray-50 p-6 dark:bg-neutral-900">
-          <div className="min-h-full text-black dark:text-white">{children}</div>
+        <Content
+          className={`flex-1 min-h-0 overflow-y-auto p-6 ${isDark ? "bg-neutral-950" : "bg-[#f5f5f5]"}`}
+        >
+          <div className="text-black dark:text-white">{children}</div>
         </Content>
       </Layout>
     </Layout>

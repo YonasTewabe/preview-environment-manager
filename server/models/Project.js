@@ -9,21 +9,18 @@ class Project extends Model {
       as: 'creator',
     });
 
-    Project.hasMany(models.BackendNode, {
+    Project.hasMany(models.Node, {
       foreignKey: 'project_id',
-      as: 'backendNodes',
+      as: 'nodes',
     });
 
-    Project.hasMany(models.FrontendNode, {
-      foreignKey: 'project_id',
-      as: 'frontendNodes',
+    Project.hasMany(models.Environment, {
+      foreignKey: "project_id",
+      as: "environments",
     });
-
-    Project.belongsToMany(models.Environment, {
-      through: models.ProjectEnvironment,
-      foreignKey: 'project_id',
-      otherKey: 'environment_id',
-      as: 'environments',
+    Project.hasMany(models.ProjectEnvProfile, {
+      foreignKey: "project_id",
+      as: "envProfiles",
     });
   }
 }
@@ -38,6 +35,7 @@ Project.init(
     name: {
       type: DataTypes.STRING(255),
       allowNull: false,
+      unique: true,
     },
     short_code: {
       type: DataTypes.STRING(20),
@@ -55,15 +53,7 @@ Project.init(
     repository_url: {
       type: DataTypes.STRING(500),
       allowNull: false,
-    },
-    jenkins_job: {
-      type: DataTypes.STRING(500),
-      allowNull: true,
-    },
-    version: {
-      type: DataTypes.STRING(50),
-      allowNull: true,
-      defaultValue: 'v1.0.0',
+      unique: true,
     },
     status: {
       type: DataTypes.ENUM('active', 'inactive', 'archived'),
@@ -75,11 +65,6 @@ Project.init(
     },
     env_name: {
       type: DataTypes.STRING(255),
-      allowNull: true,
-      unique: true,
-    },
-    last_build_date: {
-      type: DataTypes.DATE,
       allowNull: true,
     },
     created_by: {
@@ -102,7 +87,6 @@ Project.init(
       { fields: ['short_code'] },
       { fields: ['status'] },
       { fields: ['tag'] },
-      { fields: ['env_name'] },
       { fields: ['created_by'] },
     ],
   }

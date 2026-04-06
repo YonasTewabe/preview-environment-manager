@@ -1,14 +1,15 @@
-import { Layout, Menu, Typography, Button } from 'antd';
+import { Layout, Menu, Typography, Button } from "antd";
 import {
   AppstoreOutlined,
   UnorderedListOutlined,
-  SafetyOutlined,
-  LogoutOutlined
-} from '@ant-design/icons';
+  CloudOutlined,
+  TeamOutlined,
+  LogoutOutlined,
+} from "@ant-design/icons";
 import { FaCodeBranch } from "react-icons/fa6";
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { useTheme } from '../../contexts/ThemeContext';
+import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../../contexts/AuthContext";
+import { useTheme } from "../../contexts/ThemeContext";
 
 const { Sider } = Layout;
 const { Text } = Typography;
@@ -21,75 +22,72 @@ const Sidebar = ({ collapsed, onCollapse }) => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   // Determine selected keys for menu
   const getSelectedKeys = () => {
     const path = location.pathname;
-    if (path === '/' || path.startsWith('/dashboard')) return ['/'];
-    if (path.startsWith('/projects')) return ['/projects'];
-    if (path.startsWith('/users')) return ['/users'];
-    if (path.startsWith('/system')) return ['/system'];
+    if (path === "/" || path.startsWith("/dashboard")) return ["/"];
+    if (path.startsWith("/projects")) return ["/projects"];
+    if (path.startsWith("/environments")) return ["/environments"];
+    if (path.startsWith("/users")) return ["/users"];
     return [];
   };
 
   const menuItems = [
     {
-      key: '/',
-      icon: <AppstoreOutlined style={{ fontSize: '18px' }} />,
-      label: 'Dashboard',
-      onClick: () => navigate('/')
+      key: "/",
+      icon: <AppstoreOutlined style={{ fontSize: "18px" }} />,
+      label: "Dashboard",
+      onClick: () => navigate("/"),
     },
     {
-      key: '/projects',
-      icon: <UnorderedListOutlined style={{ fontSize: '18px' }} />,
-      label: 'Projects',
-      onClick: () => navigate('/projects')
+      key: "/projects",
+      icon: <UnorderedListOutlined style={{ fontSize: "18px" }} />,
+      label: "Projects",
+      onClick: () => navigate("/projects"),
     },
     {
-      key: 'admin',
-      icon: <SafetyOutlined style={{ fontSize: '18px' }} />,
-      label: 'Administration',
-      children: [
-        {
-          key: '/users',
-          label: 'User Management',
-          onClick: () => navigate('/users')
-        },
-        {
-          key: '/system',
-          label: 'System Settings',
-          onClick: () => navigate('/system')
-        }
-      ]
-    }
+      key: "/environments",
+      icon: <CloudOutlined style={{ fontSize: "18px" }} />,
+      label: "Env management",
+      onClick: () => navigate("/environments"),
+    },
+    {
+      key: "/users",
+      icon: <TeamOutlined style={{ fontSize: "18px" }} />,
+      label: "User management",
+      onClick: () => navigate("/users"),
+    },
   ];
-console.log(isDark,"isDark")
   return (
     <Sider
       trigger={null}
       collapsible
       collapsed={collapsed}
       width={280}
-      className={`${isDark ? 'dark:!bg-black' : '!bg-white'} border-r border-gray-200 flex flex-col`}
+      className={`${isDark ? "dark:!bg-black" : "!bg-white"} border-r border-gray-200 flex flex-col`}
       style={{
-        overflow: 'hidden',
-        height: '100vh',
-        position: 'fixed',
+        overflow: "hidden",
+        height: "100vh",
+        position: "fixed",
         left: 0,
         top: 0,
         bottom: 0,
-        boxShadow: 'none',
-        display: 'flex',
-        flexDirection: 'column',
+        boxShadow: "none",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
       {/* Logo and Brand */}
       <div className="px-6 py-5 border-b border-gray-100">
         <div className="flex items-center space-x-3">
           <div className="flex items-center justify-center">
-            <FaCodeBranch className="text-blue-600 dark:text-blue-400" style={{ fontSize: '32px' }} />
+            <FaCodeBranch
+              className="text-blue-600 dark:text-blue-400"
+              style={{ fontSize: "32px" }}
+            />
           </div>
           {!collapsed && (
             <Text className="text-base font-bold text-blue-600 dark:text-blue-400 tracking-wide uppercase">
@@ -107,7 +105,7 @@ console.log(isDark,"isDark")
           items={menuItems}
           className="sidebar-menu !border-none !bg-transparent"
           style={{
-            backgroundColor: 'transparent',
+            backgroundColor: "transparent",
           }}
           theme="light"
         />
@@ -121,7 +119,7 @@ console.log(isDark,"isDark")
           onClick={handleLogout}
           className="w-full flex items-center justify-start h-11 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-medium"
           style={{
-            color: isDark ? '#ffffff' : '#374151',
+            color: isDark ? "#ffffff" : "#374151",
           }}
         >
           {!collapsed && <span className="ml-2">Logout</span>}

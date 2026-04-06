@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { message, Modal } from "antd";
 import axios from "axios";
-import { appApiBase } from "../config/jenkins";
+import { appApiBase, pickPreviewTriggerRequestBody } from "../config/jenkins";
+
+/** Jenkins job run # for /console, /artifact URLs (not the per-node display sequence). */
+function jenkinsRunNumberFromTriggerResponse(data) {
+  if (!data || typeof data !== "object") return null;
+  return data.jenkinsBuildNumber ?? data.buildNumber ?? null;
+}
 
 export function useJenkins() {
   const [isBuildModalVisible, setIsBuildModalVisible] = useState(false);
@@ -31,6 +37,9 @@ export function useJenkins() {
 
   // Get console logs
   const getConsoleLogs = async (buildNumber) => {
+    if (buildNumber == null || buildNumber === "") {
+      return "Console logs not available";
+    }
     try {
       const response = await axios.get(
         `${appApiBase()}jenkins/console-logs/${buildNumber}`,
@@ -166,7 +175,7 @@ export function useJenkins() {
       // Trigger Jenkins job through our server proxy to avoid CORS issues
       const jenkinsResponse = await axios.post(
         `${appApiBase()}jenkins/trigger-preview-job`,
-        jenkinsParams,
+        pickPreviewTriggerRequestBody(jenkinsParams),
         {
           headers: {
             "Content-Type": "application/json",
@@ -176,12 +185,11 @@ export function useJenkins() {
 
       // Server proxy returns success/error in response data
       if (jenkinsResponse.data.success) {
-        // Fetch console logs
-        const consoleLog = await getConsoleLogs(
-          jenkinsResponse.data.buildNumber
+        const jenkinsRun = jenkinsRunNumberFromTriggerResponse(
+          jenkinsResponse.data,
         );
+        const consoleLog = await getConsoleLogs(jenkinsRun);
 
-        // Update build progress with success
         setBuildProgress({
           stage: "completed",
           message: "Build completed successfully!",
@@ -191,17 +199,17 @@ export function useJenkins() {
           consoleLog: consoleLog,
         });
 
-        // Call success callback
         if (onSuccess) {
           onSuccess(jenkinsResponse.data);
         }
       } else {
-        // Fetch console logs for failed build
-        const consoleLog = jenkinsResponse.data.buildNumber
-          ? await getConsoleLogs(jenkinsResponse.data.buildNumber)
+        const jenkinsRun = jenkinsRunNumberFromTriggerResponse(
+          jenkinsResponse.data,
+        );
+        const consoleLog = jenkinsRun
+          ? await getConsoleLogs(jenkinsRun)
           : "Console logs not available";
 
-        // Update build progress with error
         setBuildProgress({
           stage: "failed",
           message: `Build failed: ${jenkinsResponse.data.message}`,
@@ -211,7 +219,6 @@ export function useJenkins() {
           consoleLog: consoleLog,
         });
 
-        // Call error callback
         if (onError) {
           onError(jenkinsResponse.data);
         }
@@ -219,7 +226,6 @@ export function useJenkins() {
     } catch (error) {
       console.error("Error creating branch:", error);
 
-      // Update build progress with error
       setBuildProgress({
         stage: "error",
         message:
@@ -231,7 +237,6 @@ export function useJenkins() {
         artifactData: null,
       });
 
-      // Call error callback
       if (onError) {
         onError(error);
       }
@@ -251,8 +256,8 @@ export function useJenkins() {
 
       // Trigger Jenkins job through our server proxy to avoid CORS issues
       const jenkinsResponse = await axios.post(
-        `${appApiBase()}jenkins/trigger-frontend-job`,
-        jenkinsParams,
+        `${appApiBase()}jenkins/trigger-preview-job`,
+        pickPreviewTriggerRequestBody(jenkinsParams),
         {
           headers: {
             "Content-Type": "application/json",
@@ -262,12 +267,11 @@ export function useJenkins() {
 
       // Server proxy returns success/error in response data
       if (jenkinsResponse.data.success) {
-        // Fetch console logs
-        const consoleLog = await getConsoleLogs(
-          jenkinsResponse.data.buildNumber
+        const jenkinsRun = jenkinsRunNumberFromTriggerResponse(
+          jenkinsResponse.data,
         );
+        const consoleLog = await getConsoleLogs(jenkinsRun);
 
-        // Update build progress with success
         setBuildProgress({
           stage: "completed",
           message: "Build completed successfully!",
@@ -277,17 +281,17 @@ export function useJenkins() {
           consoleLog: consoleLog,
         });
 
-        // Call success callback
         if (onSuccess) {
           onSuccess(jenkinsResponse.data);
         }
       } else {
-        // Fetch console logs for failed build
-        const consoleLog = jenkinsResponse.data.buildNumber
-          ? await getConsoleLogs(jenkinsResponse.data.buildNumber)
+        const jenkinsRun = jenkinsRunNumberFromTriggerResponse(
+          jenkinsResponse.data,
+        );
+        const consoleLog = jenkinsRun
+          ? await getConsoleLogs(jenkinsRun)
           : "Console logs not available";
 
-        // Update build progress with error
         setBuildProgress({
           stage: "failed",
           message: `Build failed: ${jenkinsResponse.data.message}`,
@@ -297,7 +301,6 @@ export function useJenkins() {
           consoleLog: consoleLog,
         });
 
-        // Call error callback
         if (onError) {
           onError(jenkinsResponse.data);
         }
@@ -305,7 +308,6 @@ export function useJenkins() {
     } catch (error) {
       console.error("Error creating branch:", error);
 
-      // Update build progress with error
       setBuildProgress({
         stage: "error",
         message:
@@ -317,7 +319,6 @@ export function useJenkins() {
         artifactData: null,
       });
 
-      // Call error callback
       if (onError) {
         onError(error);
       }

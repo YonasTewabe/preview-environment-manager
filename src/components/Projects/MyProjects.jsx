@@ -5,8 +5,6 @@ import {
   Input,
   Space,
   Tooltip,
-  Modal,
-  Popconfirm,
   Typography,
   Row,
   Col,
@@ -51,15 +49,14 @@ const MyProjects = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
 
-  // Filter projects based on search and filters
   const filteredProjects = useMemo(() => {
-    return projects.filter((project) => {
-      const matchesSearch =
-        !searchTerm ||
-        project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        project.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const q = searchTerm.trim().toLowerCase();
+    if (!q) return projects;
 
-      return matchesSearch;
+    return projects.filter((project) => {
+      const name = String(project.name ?? "").toLowerCase();
+      const tag = String(project.tag ?? "").toLowerCase();
+      return name.includes(q) || tag.includes(q);
     });
   }, [projects, searchTerm]);
 
@@ -68,80 +65,35 @@ const MyProjects = () => {
     setIsModalVisible(true);
   };
 
-  const handleEditProject = (project) => {
-    setEditingProject(project);
+  const handleEditProject = (projectFromCard) => {
+    const id = projectFromCard?.id;
+    const full =
+      id != null ? projects.find((p) => p.id === id) ?? projectFromCard : projectFromCard;
+    setEditingProject(full);
     setIsModalVisible(true);
   };
 
   const handleDeleteProject = async (project) => {
+    if (!project) {
+      message.error("Project not found");
+      return;
+    }
     try {
-      if (!project) {
-        message.error("Project not found");
-        return;
-      }
-
-      console.log("Deleting project:", project.name);
-
-      // Show confirmation modal similar to FrontendConfig
-      Modal.confirm({
-        title: "Delete this project?",
-        content: (
-          <div>
-            <p>Are you sure you want to delete project "{project.name}"?</p>
-            {project.short_code && (
-              <p>
-                <strong>Short Code:</strong> {project.short_code}
-              </p>
-            )}
-            {project.repository_url && (
-              <p>
-                <strong>Repository:</strong> {project.repository_url}
-              </p>
-            )}
-            {project.status && (
-              <p>
-                <strong>Status:</strong> {project.status}
-              </p>
-            )}
-            {project.tag && (
-              <p>
-                <strong>Tag:</strong> {project.tag}
-              </p>
-            )}
-            <p
-              style={{
-                color: "#ff4d4f",
-                fontWeight: "bold",
-                marginTop: "12px",
-              }}
-            >
-              This action cannot be undone.
-            </p>
-          </div>
-        ),
-        okText: "Yes, Delete",
-        okType: "danger",
-        cancelText: "Cancel",
-        onOk: async () => {
-          try {
-            await deleteProject(project.id);
-            message.success(`Project "${project.name}" deleted successfully`);
-          } catch (error) {
-            console.error("Error deleting project:", error);
-            message.error("Failed to delete project. Please try again.");
-          }
-        },
-      });
+      await deleteProject(project.id);
+      message.success(`Project "${project.name}" deleted successfully`);
     } catch (error) {
       console.error("Error deleting project:", error);
-      message.error("Failed to delete project");
+      message.error("Failed to delete project. Please try again.");
     }
   };
 
   const handleModalSubmit = async (formData) => {
     try {
-      if (editingProject) {
-        await updateProject({ ...editingProject, ...formData });
+      if (editingProject?.id != null) {
+        await updateProject({
+          id: editingProject.id,
+          ...formData,
+        });
       } else {
         await createProject(formData);
       }
@@ -149,6 +101,7 @@ const MyProjects = () => {
       setEditingProject(null);
     } catch (error) {
       console.error("Error submitting project:", error);
+      throw error;
     }
   };
 
@@ -224,7 +177,7 @@ const MyProjects = () => {
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex flex-1 gap-2 w-full sm:w-auto">
             <Search
-              placeholder="search projects by name, description, or creator"
+              placeholder="Search by name or tag"
               allowClear
               size="large"
               className="flex-1"

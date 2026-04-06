@@ -1,27 +1,21 @@
-import React from 'react';
-import { Modal, Spin, Typography, Button } from 'antd';
+import React from "react";
+import { Modal, Spin, Typography, Button, message } from "antd";
+import { CheckCircleOutlined, CopyOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
 
-export default function DeployProgressModal({ 
-  isVisible, 
-  deployProgress, 
+export default function DeployProgressModal({
+  isVisible,
+  deployProgress,
   onCancel,
   previewLink,
-  portNumber,
-  onSuccess
+  onSuccess,
 }) {
   const handleOk = () => {
-    if (deployProgress.stage === 'completed') {
-      const isDeleteOperation = deployProgress.message && deployProgress.message.includes('deleted');
-      if (isDeleteOperation && onSuccess) {
-        // For delete operations, call onSuccess to navigate
-        onSuccess();
-      } else if (onSuccess) {
-        // For successful deployments, call onSuccess to navigate
+    if (deployProgress.stage === "completed") {
+      if (onSuccess) {
         onSuccess();
       } else {
-        // Fallback to onCancel if no onSuccess handler
         onCancel();
       }
     } else {
@@ -29,48 +23,35 @@ export default function DeployProgressModal({
     }
   };
 
-  // Add a small delay for successful deployments to ensure user sees the details
-  const canCloseModal = () => {
-    if (deployProgress.stage === 'completed') {
-      const isDeleteOperation = deployProgress.message && deployProgress.message.includes('deleted');
-      // For successful deployments, add a small delay
-      if (!isDeleteOperation) {
-        return true; // Allow immediate closing for deployments
-      }
-    }
-    return true;
-  };
-
   const getModalTitle = () => {
-    if (deployProgress.stage === 'deleting') {
+    if (deployProgress.stage === "deleting") {
       return "Delete Progress";
+    }
+    if (deployProgress.stage === "completed") {
+      return "Success";
     }
     return "Frontend Deployment Progress";
   };
 
   const getFooterButtons = () => {
-    if (deployProgress.stage === 'completed') {
-      // Show OK button for both delete operations and successful deployments
-      const isDeleteOperation = deployProgress.message && deployProgress.message.includes('deleted');
-      if (isDeleteOperation) {
-        return [
-          <Button key="ok" type="primary" onClick={handleOk}>
-            OK
-          </Button>
-        ];
-      }
-      // For successful deployment, show OK button to navigate
+    if (deployProgress.stage === "completed") {
       return [
         <Button key="ok" type="primary" onClick={handleOk}>
           OK
-        </Button>
+        </Button>,
       ];
     }
     return [
       <Button key="close" onClick={onCancel}>
         Close
-      </Button>
+      </Button>,
     ];
+  };
+
+  const handleCopyPreview = () => {
+    if (!previewLink) return;
+    navigator.clipboard.writeText(previewLink);
+    message.success("Preview link copied");
   };
 
   return (
@@ -79,138 +60,138 @@ export default function DeployProgressModal({
       open={isVisible}
       onCancel={onCancel}
       footer={getFooterButtons()}
-      width={500}
+      closable
+      width={480}
     >
-      <div style={{ textAlign: 'center', padding: '20px 0' }}>
-        {deployProgress.stage === 'deploying' && (
+      <div style={{ textAlign: "center", padding: "12px 0 8px" }}>
+        {deployProgress.stage === "deploying" && (
           <div>
             <Spin size="large" />
-            <div style={{ marginTop: '16px' }}>
+            <div style={{ marginTop: 16 }}>
               <Text strong>{deployProgress.message}</Text>
               <br />
-              <Text type="secondary">Please wait while Jenkins processes your deployment request...</Text>
+              <Text type="secondary">
+                Please wait while Jenkins processes your deployment request…
+              </Text>
             </div>
           </div>
         )}
-        
-        {deployProgress.stage === 'deleting' && (
+
+        {deployProgress.stage === "deleting" && (
           <div>
             <Spin size="large" />
-            <div style={{ marginTop: '16px' }}>
+            <div style={{ marginTop: 16 }}>
               <Text strong>{deployProgress.message}</Text>
               <br />
-              <Text type="secondary">Please wait while Jenkins processes your delete request...</Text>
+              <Text type="secondary">
+                Please wait while Jenkins processes your delete request…
+              </Text>
             </div>
           </div>
         )}
-        
-        {deployProgress.stage === 'completed' && (
+
+        {deployProgress.stage === "completed" && (
           <div>
-            <div style={{ fontSize: '48px', color: '#52c41a', marginBottom: '16px' }}>
-              ✅
-            </div>
-            <Text strong style={{ color: '#52c41a', fontSize: '16px' }}>
+            <CheckCircleOutlined
+              style={{
+                fontSize: 52,
+                color: "#52c41a",
+                marginBottom: 16,
+                display: "block",
+              }}
+            />
+            <Text
+              strong
+              style={{
+                color: "#52c41a",
+                fontSize: 16,
+                display: "block",
+                marginBottom: previewLink ? 20 : 0,
+              }}
+            >
               {deployProgress.message}
             </Text>
-            <br />
-            <Text type="secondary">
-              Build #{deployProgress.buildNumber} completed successfully
-            </Text>
-            
-            {/* Deployment Details */}
-            <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f6ffed', borderRadius: '8px', border: '1px solid #b7eb8f' }}>
-              <Text strong style={{ display: 'block', marginBottom: '12px' }}>
-                Deployment Details:
-              </Text>
-              
-              {portNumber && (
-                <div style={{ marginBottom: '8px' }}>
-                  <Text strong>Port Number:</Text>
-                  <br />
-                  <Text code style={{ fontSize: '14px' }}>
-                    {portNumber}
-                  </Text>
-                </div>
-              )}
-              
-              {previewLink && (
-                <div style={{ marginBottom: '8px' }}>
-                  <Text strong>Preview Link:</Text>
-                  <br />
-                  <Text code style={{ fontSize: '14px', wordBreak: 'break-all' }}>
-                    {previewLink}
-                  </Text>
-                  <Button
-                    size="small"
-                    type="text"
-                    style={{ marginLeft: '8px', padding: '0 4px' }}
-                    onClick={() => {
-                      navigator.clipboard.writeText(previewLink);
-                      // You can add a message here if needed
-                    }}
-                    title="Copy Preview Link"
-                  >
-                    📋
-                  </Button>
-                </div>
-              )}
-              
-              {/* Additional deployment info */}
-              <div style={{ marginTop: '12px', padding: '8px', backgroundColor: '#ffffff', borderRadius: '4px' }}>
-                <Text type="secondary" style={{ fontSize: '12px' }}>
-                  ✅ URL configurations saved to database
+
+            {previewLink ? (
+              <div
+                style={{
+                  marginTop: 16,
+                  maxWidth: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "8px 12px",
+                  background: "#fafafa",
+                  borderRadius: 8,
+                  border: "1px solid #f0f0f0",
+                  textAlign: "left",
+                }}
+              >
+                <Text
+                  code
+                  style={{
+                    fontSize: 13,
+                    wordBreak: "break-all",
+                    flex: 1,
+                    minWidth: 0,
+                    margin: 0,
+                    padding: "2px 0",
+                    background: "transparent",
+                    border: "none",
+                  }}
+                >
+                  {previewLink}
                 </Text>
-                <br />
-                <Text type="secondary" style={{ fontSize: '12px' }}>
-                  🔗 Frontend node updated successfully
-                </Text>
+                <Button
+                  type="default"
+                  icon={<CopyOutlined />}
+                  onClick={handleCopyPreview}
+                  style={{ flexShrink: 0 }}
+                >
+                  Copy link
+                </Button>
               </div>
-              
-              {/* User instruction */}
-              <div style={{ marginTop: '12px', textAlign: 'center' }}>
-                <Text type="secondary" style={{ fontSize: '12px', fontStyle: 'italic' }}>
-                  Click OK to continue to the configuration page
-                </Text>
-              </div>
-            </div>
+            ) : null}
           </div>
         )}
-        
-        {deployProgress.stage === 'failed' && (
+
+        {deployProgress.stage === "failed" && (
           <div>
-            <div style={{ fontSize: '48px', color: '#ff4d4f', marginBottom: '16px' }}>
+            <div
+              style={{ fontSize: "48px", color: "#ff4d4f", marginBottom: "16px" }}
+            >
               ❌
             </div>
-            <Text strong style={{ color: '#ff4d4f', fontSize: '16px' }}>
+            <Text strong style={{ color: "#ff4d4f", fontSize: "16px" }}>
               Deployment Failed
             </Text>
             <br />
-            <Text type="secondary">
-              {deployProgress.message}
-            </Text>
+            <Text type="secondary">{deployProgress.message}</Text>
             {deployProgress.buildNumber && (
-              <div style={{ marginTop: '8px' }}>
-                <Text type="secondary">Build #{deployProgress.buildNumber}</Text>
+              <div style={{ marginTop: "8px" }}>
+                <Text type="secondary">
+                  Build #{deployProgress.buildNumber}
+                </Text>
               </div>
             )}
           </div>
         )}
-        
-        {deployProgress.stage === 'error' && (
+
+        {deployProgress.stage === "error" && (
           <div>
-            <div style={{ fontSize: '48px', color: '#ff4d4f', marginBottom: '16px' }}>
+            <div
+              style={{ fontSize: "48px", color: "#ff4d4f", marginBottom: "16px" }}
+            >
               ⚠️
             </div>
-            <Text strong style={{ color: '#ff4d4f', fontSize: '16px' }}>
+            <Text strong style={{ color: "#ff4d4f", fontSize: "16px" }}>
               Deployment Error
             </Text>
             <br />
-            <Text type="secondary">
-              {deployProgress.message}
-            </Text>
+            <Text type="secondary">{deployProgress.message}</Text>
           </div>
         )}
       </div>
     </Modal>
   );
-} 
+}

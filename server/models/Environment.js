@@ -4,8 +4,12 @@ import { sequelize } from '../config/database.js';
 class Environment extends Model {
   static associate(models) {
     Environment.belongsTo(models.Project, {
-      foreignKey: 'project_id',
-      as: 'project',
+      foreignKey: "project_id",
+      as: "project",
+    });
+    Environment.belongsTo(models.ProjectEnvProfile, {
+      foreignKey: "profile_id",
+      as: "profile",
     });
   }
 }
@@ -21,20 +25,21 @@ Environment.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'projects',
-        key: 'id',
+        model: "projects",
+        key: "id",
       },
-      onDelete: 'CASCADE',
-      onUpdate: 'CASCADE',
+      onDelete: "CASCADE",
+      onUpdate: "CASCADE",
     },
-    env_name: {
-      type: DataTypes.STRING(255),
+    profile_id: {
+      type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'projects',
-        key: 'env_name',
+        model: "project_env_profiles",
+        key: "id",
       },
-      onDelete: 'CASCADE',
+      onDelete: "CASCADE",
+      onUpdate: "CASCADE",
     },
     env_variable: {
       type: DataTypes.STRING(255),
@@ -52,13 +57,13 @@ Environment.init(
     timestamps: true,
     underscored: true,
     indexes: [
-      { fields: ['env_name'] },
-      { fields: ['env_variable'] },
-      { fields: ['project_id'] },
+      { fields: ["env_variable"] },
+      { fields: ["project_id"] },
+      { fields: ["profile_id"] },
       {
-        fields: ['project_id', 'env_variable'],
+        fields: ["profile_id", "env_variable"],
         unique: true,
-        name: 'unique_project_env_variable',
+        name: "unique_profile_env_variable",
       },
     ],
   }

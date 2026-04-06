@@ -1,7 +1,82 @@
 import express from "express";
-import { Project, User, Environment } from "../models/index.js";
+import { Op } from "sequelize";
+import { Project, User, Environment, ProjectEnvProfile, Node } from "../models/index.js";
+import {
+  slugifyEnvProfileLabel,
+  uniqueSlugForProject,
+} from "../utils/envProfileSlug.js";
+import { getDefaultEnvProfile, resolveProfileIdForProject } from "../utils/resolveProjectEnvProfile.js";
 
 const router = express.Router();
+
+function normalizeRepositoryUrl(u) {
+  return String(u ?? "").trim().replace(/\/+$/, "");
+}
+
+/**
+ * Returns { field, error } if another project uses the same name, short_code, or repo URL.
+ */
+async function findFirstDuplicateProjectField(payload, excludeProjectId) {
+  const nameNorm = String(payload.name ?? "").trim();
+  const shortNorm = String(payload.short_code ?? "").trim().toLowerCase();
+  const repoNorm = normalizeRepositoryUrl(payload.repository_url);
+
+  const idFilter =
+    excludeProjectId != null && Number.isFinite(Number(excludeProjectId))
+      ? { id: { [Op.ne]: Number(excludeProjectId) } }
+      : {};
+
+  const rows = await Project.findAll({
+    where: idFilter,
+    attributes: ["name", "short_code", "repository_url"],
+  });
+
+  for (const p of rows) {
+    if (nameNorm && p.name === nameNorm) {
+      return {
+        field: "name",
+        error: "A project with this name already exists.",
+      };
+    }
+    if (shortNorm && String(p.short_code ?? "").toLowerCase() === shortNorm) {
+      return {
+        field: "short_code",
+        error: "This short code is already in use.",
+      };
+    }
+    if (
+      repoNorm &&
+      normalizeRepositoryUrl(p.repository_url) === repoNorm
+    ) {
+      return {
+        field: "repository_url",
+        error: "This repository URL is already linked to another project.",
+      };
+    }
+  }
+  return null;
+}
+
+function mapUniqueConstraintError(error) {
+  if (error?.name !== "SequelizeUniqueConstraintError") return null;
+  const msg = String(
+    error?.parent?.sqlMessage ||
+      error?.original?.sqlMessage ||
+      error?.message ||
+      "",
+  );
+  const path = error?.errors?.[0]?.path;
+  if (path === "name" || /for key.*name/i.test(msg)) {
+    return "A project with this name already exists.";
+  }
+  if (path === "short_code" || /short_code/i.test(msg)) {
+    return "This short code is already in use.";
+  }
+  if (path === "repository_url" || /repository_url/i.test(msg)) {
+    return "This repository URL is already linked to another project.";
+  }
+  return "This value is already in use by another project.";
+}
 
 const isUnknownColumnError = (error, columnName) => {
   const msg = error?.original?.sqlMessage || error?.parent?.sqlMessage || error?.message || '';
@@ -14,41 +89,80 @@ const sanitizeProject = (projectInstanceOrJson) => {
     : { ...(projectInstanceOrJson || {}) };
 
   // Removed from API surface
-  delete json.jenkins_job;
   delete json.status;
   // Keep environment payload in API; required by environment management UI
 
+  if (Array.isArray(json.envProfiles)) {
+    json.env_profiles = json.envProfiles.map((p) => {
+      const x = p.get ? p.get({ plain: true }) : p;
+      return {
+        id: x.id,
+        name: x.name,
+        slug: x.slug,
+        is_default: x.is_default,
+      };
+    });
+    delete json.envProfiles;
+  }
+
   if (Array.isArray(json.environments)) {
-    // Present consistent API shape to frontend
-    json.environments = json.environments.map((e) => ({
-      id: e.id,
-      key: e.env_variable,
-      value: e.env,
-    }));
+    json.environments = json.environments
+      .filter((e) => {
+        const plain = e.get ? e.get({ plain: true }) : e;
+        if (plain.profile == null) return true;
+        const pr = plain.profile.get
+          ? plain.profile.get({ plain: true })
+          : plain.profile;
+        return pr.is_default === true;
+      })
+      .map((e) => {
+        const plain = e.get ? e.get({ plain: true }) : e;
+        return {
+          id: plain.id,
+          key: plain.env_variable,
+          value: plain.env,
+        };
+      });
   }
 
   return json;
 };
 
+const projectDetailIncludes = [
+  {
+    model: User,
+    as: "creator",
+    attributes: ["id", "username", "email", "first_name", "last_name"],
+  },
+  {
+    model: ProjectEnvProfile,
+    as: "envProfiles",
+    attributes: ["id", "name", "slug", "is_default"],
+    required: false,
+  },
+  {
+    model: Environment,
+    as: "environments",
+    attributes: ["id", "env_variable", "env", "profile_id"],
+    required: false,
+    include: [
+      {
+        model: ProjectEnvProfile,
+        as: "profile",
+        attributes: ["id", "is_default"],
+        required: false,
+      },
+    ],
+  },
+];
+
 // GET /api/projects - Get all projects
 router.get("/", async (req, res) => {
   try {
     const projects = await Project.findAll({
-      attributes: { exclude: ['jenkins_job', 'status'] },
-      include: [
-        {
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'username', 'email','first_name','last_name'],
-        },
-        {
-          model: Environment,
-          as: 'environments',
-          attributes: ['id', 'env_variable', 'env'],
-          required: false,
-        },
-      ],
-      order: [['created_at', 'DESC']],
+      attributes: { exclude: ["status"] },
+      include: projectDetailIncludes,
+      order: [["created_at", "DESC"]],
     });
     res.json(projects.map(sanitizeProject));
   } catch (error) {
@@ -56,7 +170,7 @@ router.get("/", async (req, res) => {
     if (isUnknownColumnError(error, 'Project.env_name')) {
       try {
         const projects = await Project.findAll({
-          attributes: { exclude: ['jenkins_job', 'status', 'env_name'] },
+          attributes: { exclude: ['status', 'env_name'] },
           include: [
             {
               model: User,
@@ -80,20 +194,8 @@ router.get("/", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const project = await Project.findByPk(req.params.id, {
-      attributes: { exclude: ['jenkins_job', 'status'] },
-      include: [
-        {
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'username', 'email','first_name','last_name'],
-        },
-        {
-          model: Environment,
-          as: 'environments',
-          attributes: ['id', 'env_variable', 'env'],
-          required: false,
-        },
-      ],
+      attributes: { exclude: ["status"] },
+      include: projectDetailIncludes,
     });
     
     if (!project) {
@@ -105,7 +207,7 @@ router.get("/:id", async (req, res) => {
     if (isUnknownColumnError(error, 'Project.env_name') || isUnknownColumnError(error, 'env_name')) {
       try {
         const project = await Project.findByPk(req.params.id, {
-          attributes: { exclude: ['jenkins_job', 'status', 'env_name'] },
+          attributes: { exclude: ['status', 'env_name'] },
           include: [
             {
               model: User,
@@ -138,19 +240,37 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ error: "Name, repository_url, short_code, and env_name are required" });
     }
 
-    const tag = tagRaw === 'backend' ? 'backend' : 'frontend';
+    const tagNorm = String(tagRaw ?? 'frontend').toLowerCase();
+    const tag =
+      tagNorm === 'backend' || tagNorm === 'api' ? 'backend' : 'frontend';
 
+    const envDisplay = String(env_name).trim();
     const project = await Project.create({
       name,
       description,
       repository_url,
       tag,
-      env_name,
+      env_name: envDisplay.toLowerCase(),
       created_by: Number.parseInt(created_by, 10) || 1,
       short_code,
     });
 
-    res.status(201).json(sanitizeProject(project));
+    const slug = await uniqueSlugForProject(
+      ProjectEnvProfile,
+      project.id,
+      slugifyEnvProfileLabel(envDisplay, project.id),
+    );
+    await ProjectEnvProfile.create({
+      project_id: project.id,
+      name: envDisplay,
+      slug,
+      is_default: true,
+    });
+
+    const createdFull = await Project.findByPk(project.id, {
+      include: projectDetailIncludes,
+    });
+    res.status(201).json(sanitizeProject(createdFull));
   } catch (error) {
     console.error("Error creating project:", error);
     if (error.name === 'SequelizeUniqueConstraintError') {
@@ -163,30 +283,75 @@ router.post("/", async (req, res) => {
 // PUT /api/projects/:id - Update a project
 router.put("/:id", async (req, res) => {
   try {
-    const { name, description, repository_url, short_code, tag: tagRaw } = req.body;
-    
+    const {
+      name,
+      description,
+      repository_url,
+      short_code,
+      env_name,
+      tag: tagRaw,
+    } = req.body;
+
     const project = await Project.findByPk(req.params.id);
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
 
+    const nameNorm =
+      name != null ? String(name).trim() : String(project.name ?? "").trim();
+    const shortCodeNorm =
+      short_code != null
+        ? String(short_code).trim().toLowerCase()
+        : String(project.short_code ?? "").trim().toLowerCase();
+    const repoNorm =
+      repository_url != null
+        ? normalizeRepositoryUrl(repository_url)
+        : normalizeRepositoryUrl(project.repository_url);
+
+    const dup = await findFirstDuplicateProjectField(
+      {
+        name: nameNorm,
+        short_code: shortCodeNorm,
+        repository_url: repoNorm,
+      },
+      project.id,
+    );
+    if (dup) {
+      return res.status(400).json({ error: dup.error, field: dup.field });
+    }
+
     const updates = {
-      name,
+      name: nameNorm,
       description,
-      repository_url,
-      short_code,
+      repository_url: repoNorm,
+      short_code: shortCodeNorm,
     };
-    if (tagRaw === 'frontend' || tagRaw === 'backend') {
-      updates.tag = tagRaw;
+    if (env_name != null && String(env_name).trim() !== "") {
+      updates.env_name = String(env_name).trim().toLowerCase();
+    }
+    if (tagRaw != null && String(tagRaw).trim() !== "") {
+      const t = String(tagRaw).toLowerCase();
+      updates.tag = t === "backend" || t === "api" ? "backend" : "frontend";
     }
 
     await project.update(updates);
 
-    res.json(sanitizeProject(project));
+    if (env_name != null && String(env_name).trim() !== "") {
+      const def = await getDefaultEnvProfile(project.id);
+      if (def) {
+        await def.update({ name: String(env_name).trim() });
+      }
+    }
+
+    const updatedFull = await Project.findByPk(project.id, {
+      include: projectDetailIncludes,
+    });
+    res.json(sanitizeProject(updatedFull));
   } catch (error) {
     console.error("Error updating project:", error);
-    if (error.name === 'SequelizeUniqueConstraintError') {
-      return res.status(400).json({ error: "Project name already exists" });
+    const mapped = mapUniqueConstraintError(error);
+    if (mapped) {
+      return res.status(400).json({ error: mapped });
     }
     res.status(500).json({ error: "Failed to update project" });
   }
@@ -264,51 +429,227 @@ router.put("/:id/environments", async (req, res) => {
     const envKeys = environmentArray.map((row) => row.env_variable);
     if (new Set(envKeys).size !== envKeys.length) {
       return res.status(400).json({
-        error: "Duplicate environment variable keys are not allowed for a project",
+        error: "Duplicate environment variable keys are not allowed for a profile",
       });
     }
 
-    // Ensure env_name exists on project (used as relational key)
-    const envName = project.env_name || project.short_code || String(project.id);
-    if (!project.env_name) {
-      await project.update({ env_name: envName });
+    const bodyProfile =
+      req.body.profile_id ?? req.body.profileId ?? req.body.env_profile_id;
+    const profileId = await resolveProfileIdForProject(
+      project.id,
+      bodyProfile != null && bodyProfile !== "" ? bodyProfile : null,
+    );
+    if (!profileId) {
+      return res.status(400).json({
+        error: "No environment profile found for this project",
+      });
     }
 
-    // Replace all existing env vars for this project (scoped by project_id)
-    await Environment.destroy({ where: { project_id: project.id } });
+    await Environment.destroy({ where: { profile_id: profileId } });
     if (environmentArray.length > 0) {
       await Environment.bulkCreate(
         environmentArray.map((env) => ({
           project_id: project.id,
-          env_name: envName,
+          profile_id: profileId,
           env_variable: env.env_variable,
           env: String(env.env ?? "").trim(),
         })),
-        { validate: true }
+        { validate: true },
       );
     }
 
-    // Fetch updated project with environments
     const updatedProject = await Project.findByPk(req.params.id, {
-      include: [
-        {
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'username', 'email','first_name','last_name'],
-        },
-        {
-          model: Environment,
-          as: 'environments',
-          attributes: ['id', 'env_variable', 'env'],
-          required: false,
-        },
-      ],
+      include: projectDetailIncludes,
     });
 
     res.json(sanitizeProject(updatedProject));
   } catch (error) {
     console.error("Error updating project environments:", error);
     res.status(500).json({ error: "Failed to update project environments" });
+  }
+});
+
+// --- Project environment profiles (dev / staging / prod, etc.) ---
+
+router.get("/:id/env-profiles", async (req, res) => {
+  try {
+    const project = await Project.findByPk(req.params.id);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    const rows = await ProjectEnvProfile.findAll({
+      where: { project_id: project.id },
+      attributes: ["id", "name", "slug", "is_default", "created_at"],
+      order: [
+        ["is_default", "DESC"],
+        ["name", "ASC"],
+      ],
+    });
+    const withCounts = await Promise.all(
+      rows.map(async (r) => {
+        const plain = r.get({ plain: true });
+        const n = await Environment.count({
+          where: { profile_id: plain.id },
+        });
+        return { ...plain, variable_count: n };
+      }),
+    );
+    res.json({ env_profiles: withCounts });
+  } catch (error) {
+    console.error("Error listing env profiles:", error);
+    res.status(500).json({ error: "Failed to list environment profiles" });
+  }
+});
+
+router.post("/:id/env-profiles", async (req, res) => {
+  try {
+    const project = await Project.findByPk(req.params.id);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    let { name, slug: slugRaw, is_default: isDefaultRaw } = req.body || {};
+    name = String(name ?? "").trim();
+    if (!name) return res.status(400).json({ error: "name is required" });
+
+    let slug =
+      slugRaw != null && String(slugRaw).trim()
+        ? slugifyEnvProfileLabel(String(slugRaw).trim(), project.id)
+        : slugifyEnvProfileLabel(name, project.id);
+    slug = await uniqueSlugForProject(ProjectEnvProfile, project.id, slug);
+
+    const existingCount = await ProjectEnvProfile.count({
+      where: { project_id: project.id },
+    });
+    const isDefault = Boolean(isDefaultRaw) || existingCount === 0;
+    if (isDefault) {
+      await ProjectEnvProfile.update(
+        { is_default: false },
+        { where: { project_id: project.id } },
+      );
+    }
+
+    const row = await ProjectEnvProfile.create({
+      project_id: project.id,
+      name,
+      slug,
+      is_default: isDefault,
+    });
+
+    if (isDefault) {
+      await project.update({ env_name: name.toLowerCase() });
+    }
+
+    res.status(201).json({
+      env_profile: row.get({ plain: true }),
+    });
+  } catch (error) {
+    const dup =
+      error?.name === "SequelizeUniqueConstraintError" ||
+      error?.parent?.code === "ER_DUP_ENTRY";
+    if (dup) {
+      return res.status(409).json({ error: "Slug already exists for this project" });
+    }
+    console.error("Error creating env profile:", error);
+    res.status(500).json({ error: "Failed to create environment profile" });
+  }
+});
+
+router.patch("/:id/env-profiles/:profileId", async (req, res) => {
+  try {
+    const project = await Project.findByPk(req.params.id);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    const pid = parseInt(req.params.profileId, 10);
+    if (!Number.isFinite(pid)) {
+      return res.status(400).json({ error: "Invalid profile id" });
+    }
+    const row = await ProjectEnvProfile.findOne({
+      where: { id: pid, project_id: project.id },
+    });
+    if (!row) return res.status(404).json({ error: "Environment profile not found" });
+
+    const { name, slug: slugRaw, is_default: isDefaultRaw } = req.body || {};
+    const updates = {};
+    if (name != null && String(name).trim() !== "") {
+      updates.name = String(name).trim();
+    }
+    if (slugRaw != null && String(slugRaw).trim() !== "") {
+      const s = await uniqueSlugForProject(
+        ProjectEnvProfile,
+        project.id,
+        slugifyEnvProfileLabel(String(slugRaw).trim(), project.id),
+        row.id,
+      );
+      if (s !== row.slug) updates.slug = s;
+    }
+
+    const setDefault = isDefaultRaw === true;
+    if (setDefault) {
+      await ProjectEnvProfile.update(
+        { is_default: false },
+        { where: { project_id: project.id } },
+      );
+      updates.is_default = true;
+    }
+
+    await row.update(updates);
+    await row.reload();
+
+    if (row.is_default) {
+      await project.update({
+        env_name: String(row.name ?? "").toLowerCase(),
+      });
+    }
+
+    res.json({ env_profile: row.get({ plain: true }) });
+  } catch (error) {
+    console.error("Error updating env profile:", error);
+    res.status(500).json({ error: "Failed to update environment profile" });
+  }
+});
+
+router.delete("/:id/env-profiles/:profileId", async (req, res) => {
+  try {
+    const project = await Project.findByPk(req.params.id);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    const pid = parseInt(req.params.profileId, 10);
+    if (!Number.isFinite(pid)) {
+      return res.status(400).json({ error: "Invalid profile id" });
+    }
+    const row = await ProjectEnvProfile.findOne({
+      where: { id: pid, project_id: project.id },
+    });
+    if (!row) return res.status(404).json({ error: "Environment profile not found" });
+
+    const count = await ProjectEnvProfile.count({
+      where: { project_id: project.id },
+    });
+    if (count <= 1) {
+      return res.status(400).json({
+        error: "Cannot delete the only environment profile for this project",
+      });
+    }
+
+    if (row.is_default) {
+      return res.status(400).json({
+        error:
+          "Cannot delete the default environment profile. Set another profile as default first.",
+      });
+    }
+
+    const def = await getDefaultEnvProfile(project.id);
+    if (!def || def.id === row.id) {
+      return res.status(400).json({
+        error: "No default environment profile to reassign nodes to",
+      });
+    }
+
+    await Node.update(
+      { project_env_profile_id: def.id },
+      { where: { project_id: project.id, project_env_profile_id: row.id } },
+    );
+
+    await row.destroy();
+
+    res.json({ message: "Environment profile deleted" });
+  } catch (error) {
+    console.error("Error deleting env profile:", error);
+    res.status(500).json({ error: "Failed to delete environment profile" });
   }
 });
 

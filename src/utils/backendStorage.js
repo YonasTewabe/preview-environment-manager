@@ -1,13 +1,13 @@
-// Utility functions for managing backend services data in JSON file
+// Utility functions for managing API preview node sample data from the server
 
-const API_BASE_URL = 'http://localhost:3001/api/backendnodes';
+const API_BASE_URL = `${import.meta.env.VITE_BACKEND_URL || ''}preview-services`;
 
 export const loadBackendServicesFromFile = async () => {
   try {
     const response = await fetch(API_BASE_URL);
     if (response.ok) {
       const data = await response.json();
-      return data.backendServices || [];
+      return data.services ?? data.apiServices ?? data.backendServices ?? [];
     } else {
       console.warn('Could not load backend services from server, starting with empty array');
       return [];

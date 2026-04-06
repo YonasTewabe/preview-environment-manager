@@ -1,8 +1,34 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { App } from 'antd';
 import { projectService } from '../services/projectService';
+import {
+  invalidateAndRefetchActive,
+  queryKeyPart,
+} from '../utils/invalidateQueries';
+
+const DUPLICATE_FORM_FIELDS = new Set([
+  'name',
+  'short_code',
+  'env_name',
+  'repository_url',
+]);
+
+/** 400 responses for duplicate project fields are shown on the form, not as a toast. */
+function isDuplicateProjectApiError(error) {
+  const data = error?.response?.data;
+  if (error?.response?.status !== 400 || !data) return false;
+  if (data.field && DUPLICATE_FORM_FIELDS.has(data.field)) return true;
+  const msg = String(data.error || '').toLowerCase();
+  return (
+    msg.includes('already exists') ||
+    msg.includes('already in use') ||
+    msg.includes('already linked')
+  );
+}
 
 export const useProjects = () => {
+  const queryClient = useQueryClient();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -32,11 +58,18 @@ export const useProjects = () => {
     try {
       const newProject = await projectService.createProject(projectData);
       setProjects(prev => [newProject, ...prev]);
+      await invalidateAndRefetchActive(
+        queryClient,
+        ['projects'],
+        ['project'],
+      );
       message.success('Project created successfully!');
       return newProject;
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Failed to create project';
-      message.error(errorMessage);
+      if (!isDuplicateProjectApiError(error)) {
+        const errorMessage = error.response?.data?.error || 'Failed to create project';
+        message.error(errorMessage);
+      }
       throw error;
     } finally {
       setLoading(false);
@@ -52,11 +85,27 @@ export const useProjects = () => {
           project.id === projectData.id ? updatedProject : project
         )
       );
+      const pid = queryKeyPart(projectData.id);
+      await invalidateAndRefetchActive(
+        queryClient,
+        ['projects'],
+        ['project'],
+        ...(pid != null ? [['project', pid]] : []),
+        ['envVars'],
+        ...(pid != null ? [['envVars', pid]] : []),
+        ...(pid != null ? [['projectEnvVars', pid]] : []),
+        ...(pid != null ? [['projectDefaultEnvVars', pid]] : []),
+        ...(pid != null ? [['envProfiles', pid]] : []),
+        ['previewNodesByProject'],
+        ['previewServicesByProject'],
+      );
       message.success('Project updated successfully!');
       return updatedProject;
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Failed to update project';
-      message.error(errorMessage);
+      if (!isDuplicateProjectApiError(error)) {
+        const errorMessage = error.response?.data?.error || 'Failed to update project';
+        message.error(errorMessage);
+      }
       throw error;
     } finally {
       setLoading(false);
@@ -68,6 +117,25 @@ export const useProjects = () => {
     try {
       await projectService.deleteProject(projectId);
       setProjects(prev => prev.filter(project => project.id !== projectId));
+      const pid = queryKeyPart(projectId);
+      await invalidateAndRefetchActive(
+        queryClient,
+        ['projects'],
+        ['project'],
+        ...(pid != null ? [['project', pid]] : []),
+        ['envVars'],
+        ...(pid != null ? [['envVars', pid]] : []),
+        ...(pid != null ? [['projectEnvVars', pid]] : []),
+        ...(pid != null ? [['projectDefaultEnvVars', pid]] : []),
+        ...(pid != null ? [['envProfiles', pid]] : []),
+        ['previewNodesByProject'],
+        ['previewNodesCatalog'],
+        ['previewServicesByProject'],
+        ['previewServicesCatalog'],
+        ['previewNode'],
+        ['previewServiceById'],
+        ['nodeBuildHistory'],
+      );
       message.success('Project deleted successfully!');
     } catch (error) {
       const errorMessage = error.response?.data?.error || 'Failed to delete project';
@@ -128,6 +196,13 @@ export const useProjects = () => {
         prev.map(project => 
           project.id === projectId ? updatedProject : project
         )
+      );
+      const pid = queryKeyPart(projectId);
+      await invalidateAndRefetchActive(
+        queryClient,
+        ['projects'],
+        ['project'],
+        ...(pid != null ? [['project', pid]] : []),
       );
       message.success('Project status updated successfully!');
       return updatedProject;

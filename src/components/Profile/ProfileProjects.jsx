@@ -5,7 +5,7 @@ import {
   Input, 
   Select, 
   Tabs, 
-  Modal, 
+  Modal,
   Empty, 
   Spin, 
   Row, 
@@ -85,15 +85,8 @@ const ProfileProjects = () => {
     setIsModalVisible(true);
   };
 
-  const handleDeleteProject = (project) => {
-    Modal.confirm({
-      title: 'Delete Project',
-      content: `Are you sure you want to delete "${project.name}"? This action cannot be undone.`,
-      okText: 'Delete',
-      okType: 'danger',
-      cancelText: 'Cancel',
-      onOk: () => deleteProject(project.id),
-    });
+  const handleDeleteProject = async (project) => {
+    await deleteProject(project.id);
   };
 
   const handleModalSubmit = async (formData) => {
@@ -108,6 +101,7 @@ const ProfileProjects = () => {
       setEditingProject(null);
     } catch (error) {
       console.error('Error submitting project:', error);
+      throw error;
     } finally {
       setModalLoading(false);
     }

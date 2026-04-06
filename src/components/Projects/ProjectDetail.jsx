@@ -1,28 +1,35 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Card,
-  Tag,
   Button,
   Skeleton,
   Alert,
   Tooltip,
-  Modal,
   Dropdown,
+  Popover,
+  Space,
+  Select,
+  message,
 } from "antd";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftOutlined,
   EditOutlined,
-  MoreOutlined,
+  DeleteOutlined,
   EnvironmentOutlined,
+  MoreOutlined,
 } from "@ant-design/icons";
-import dayjs from "dayjs";
 import { useProjects } from "../../hooks/useProjects";
 import AddProjectModal from "./AddProjectModal";
 import Home from "../../pages/Home";
+import { projectService } from "../../services/projectService";
+import {
+  invalidateAndRefetchActive,
+  queryKeyPart,
+} from "../../utils/invalidateQueries";
 
 // Skeleton Component for ProjectDetail
 const ProjectDetailSkeleton = () => {
@@ -135,9 +142,13 @@ const ProjectDetail = () => {
   const navigate = useNavigate();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingProject, setEditingProject] = useState(null);
-  const { updateProject, getProjectById, deleteProject } = useProjects();
+  const [, setEditingProject] = useState(null);
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+  const [deletePopoverOpen, setDeletePopoverOpen] = useState(false);
+  const [settingDefaultProfile, setSettingDefaultProfile] = useState(false);
+  const actionsWrapRef = useRef(null);
   const queryClient = useQueryClient();
+  const { updateProject, getProjectById, deleteProject } = useProjects();
   const { data, isLoading, error } = useQuery({
     queryKey: ["project", projectId],
     queryFn: () => getProjectById(projectId),
@@ -169,37 +180,61 @@ const ProjectDetail = () => {
     repository_url,
     description,
     environments: projectEnvironments,
+    env_profiles: envProfilesRaw,
   } = data;
+
+  const envProfiles = Array.isArray(envProfilesRaw) ? envProfilesRaw : [];
+  const defaultProfileId = envProfiles.find((p) => p.is_default)?.id ?? null;
+
+  const handleDefaultProfileChange = async (profileId) => {
+    if (profileId == null || String(profileId) === String(defaultProfileId)) {
+      return;
+    }
+    setSettingDefaultProfile(true);
+    try {
+      await projectService.patchEnvProfile(projectId, profileId, {
+        is_default: true,
+      });
+      const pidKey = queryKeyPart(projectId);
+      await invalidateAndRefetchActive(
+        queryClient,
+        ["projects"],
+        ...(pidKey != null ? [["project", pidKey]] : []),
+        ...(pidKey != null ? [["envProfiles", pidKey]] : []),
+        ...(pidKey != null ? [["envVars", pidKey]] : []),
+        ...(pidKey != null ? [["projectEnvVars", pidKey]] : []),
+        ...(pidKey != null ? [["projectDefaultEnvVars", pidKey]] : []),
+      );
+      message.success("Default environment profile updated");
+    } catch (e) {
+      message.error(
+        e?.response?.data?.error ||
+          e?.message ||
+          "Failed to update default profile",
+      );
+    } finally {
+      setSettingDefaultProfile(false);
+    }
+  };
 
   const handleModalSubmit = async (formData) => {
     try {
       await updateProject({ ...data, ...formData });
-      await queryClient.invalidateQueries({ queryKey: ["project", projectId] });
-      await queryClient.invalidateQueries({ queryKey: ["projects"] });
       setIsModalVisible(false);
       setEditingProject(null);
     } catch (error) {
       console.error("Error submitting project:", error);
+      throw error;
     }
   };
 
-  const handleDelete = async () => {
-    Modal.confirm({
-      title: "Delete this project?",
-      content: "This action cannot be undone.",
-      okText: "Delete",
-      okType: "danger",
-      cancelText: "Cancel",
-      onOk: async () => {
-        try {
-          await deleteProject(data.id);
-          await queryClient.invalidateQueries({ queryKey: ["projects"] });
-          navigate("/projects");
-        } catch (err) {
-          // error handled in hook
-        }
-      },
-    });
+  const runDeleteProject = async () => {
+    try {
+      await deleteProject(data.id);
+      navigate("/projects");
+    } catch {
+      // error handled in hook
+    }
   };
 
   return (
@@ -214,7 +249,7 @@ const ProjectDetail = () => {
           Back
         </Button>
       </div>
-      <div className="grid md:grid-cols-12 grid-cols-1 gap-4">
+      <div className="grid md:grid-cols-12 gap-4">
         {/* Details Section */}
         <Card className="md:col-span-12 col-span-1">
           <div className="flex justify-between items-center mb-4">
@@ -223,7 +258,7 @@ const ProjectDetail = () => {
               <h4 className="text-sm text-gray-500">{description}</h4>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap justify-end">
               {repository_url && (
                 <Tooltip title="Open repository in new tab">
                   <a
@@ -235,26 +270,92 @@ const ProjectDetail = () => {
                   </a>
                 </Tooltip>
               )}
-              <Dropdown
-                menu={{
-                  items: [
-                    {
-                      key: "edit",
-                      label: "Edit",
-                      onClick: () => setIsModalVisible(true),
-                    },
-                    {
-                      key: "delete",
-                      label: "Delete",
-                      onClick: handleDelete,
-                      danger: true,
-                    },
-                  ],
-                }}
-                trigger={["click"]}
+              <Popover
+                open={deletePopoverOpen}
+                onOpenChange={setDeletePopoverOpen}
+                placement="bottomRight"
+                trigger={[]}
+                arrow={false}
+                getPopupContainer={() =>
+                  actionsWrapRef.current ?? document.body
+                }
+                content={
+                  <div style={{ maxWidth: 300 }}>
+                    <div style={{ fontWeight: 600, marginBottom: 8 }}>
+                      Delete this project?
+                    </div>
+                    <p style={{ marginBottom: 12 }}>
+                      Are you sure you want to delete <strong>{name}</strong>?
+                    </p>
+                    <Space
+                      style={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        width: "100%",
+                      }}
+                    >
+                      <Button
+                        size="small"
+                        onClick={() => setDeletePopoverOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        size="small"
+                        type="primary"
+                        danger
+                        onClick={async () => {
+                          setDeletePopoverOpen(false);
+                          await runDeleteProject();
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </Space>
+                  </div>
+                }
               >
-                <Button icon={<MoreOutlined />} />
-              </Dropdown>
+                <span ref={actionsWrapRef} className="inline-flex">
+                  <Dropdown
+                    open={actionsMenuOpen}
+                    onOpenChange={setActionsMenuOpen}
+                    trigger={["click"]}
+                    placement="bottomRight"
+                    menu={{
+                      items: [
+                        {
+                          key: "edit",
+                          label: "Edit",
+                          icon: <EditOutlined />,
+                          onClick: () => {
+                            setActionsMenuOpen(false);
+                            setIsModalVisible(true);
+                          },
+                        },
+                        {
+                          key: "delete",
+                          label: "Delete",
+                          icon: <DeleteOutlined />,
+                          danger: true,
+                          onClick: () => {
+                            setActionsMenuOpen(false);
+                            window.setTimeout(
+                              () => setDeletePopoverOpen(true),
+                              0,
+                            );
+                          },
+                        },
+                      ],
+                    }}
+                  >
+                    <Button
+                      type="default"
+                      icon={<MoreOutlined />}
+                      aria-label="Project actions"
+                    />
+                  </Dropdown>
+                </span>
+              </Popover>
             </div>
           </div>
         </Card>
@@ -278,6 +379,28 @@ const ProjectDetail = () => {
             </Button>
           }
         >
+          {envProfiles.length > 0 ? (
+            <div
+              className="mb-4 flex flex-wrap items-center gap-3"
+              style={{ alignItems: "center" }}
+            >
+              <span className="text-sm font-medium text-gray-700">
+                Default profile
+              </span>
+              <Select
+                style={{ minWidth: 260 }}
+                placeholder="Choose default profile"
+                loading={settingDefaultProfile}
+                disabled={settingDefaultProfile}
+                value={defaultProfileId ?? undefined}
+                options={envProfiles.map((p) => ({
+                  value: p.id,
+                  label: p.is_default ? `${p.name} (default)` : p.name,
+                }))}
+                onChange={(v) => void handleDefaultProfileChange(v)}
+              />
+            </div>
+          ) : null}
           <div
             style={{
               fontFamily: "monospace",
@@ -300,8 +423,8 @@ const ProjectDetail = () => {
                 .join("\n")
             ) : (
               <span style={{ color: "#999" }}>
-                No environments configured. Click "Manage Environments" to add
-                environment variables.
+                No environments configured. Click &quot;Manage
+                Environments&quot; to add environment variables.
               </span>
             )}
           </div>

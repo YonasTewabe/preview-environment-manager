@@ -8,7 +8,8 @@ import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/Layout/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
-import FrontendConfig from './pages/FrontendConfig';
+import NodeConfigPage from './pages/NodeConfigPage';
+import ConfigLegacyRedirect from './pages/ConfigLegacyRedirect';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -18,6 +19,7 @@ import ProfileProjects from './components/Profile/ProfileProjects';
 import MyProjects from './components/Projects/MyProjects';
 import ProjectDetail from './components/Projects/ProjectDetail';
 import ProjectEnvironments from './components/Projects/ProjectEnvironments';
+import EnvManagement from './pages/EnvManagement';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -61,15 +63,25 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route 
-                path="/config/:id" 
+              <Route
+                path="/projects/:projectId/nodes/:nodeId"
                 element={
                   <ProtectedRoute>
                     <MainLayout>
-                      <FrontendConfig />
+                      <NodeConfigPage />
                     </MainLayout>
                   </ProtectedRoute>
-                } 
+                }
+              />
+              <Route
+                path="/config/:id"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <ConfigLegacyRedirect />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
               />
               <Route 
                 path="/projects" 
@@ -91,25 +103,31 @@ function App() {
                   <MainLayout><ProjectEnvironments /></MainLayout>
                   </ProtectedRoute>} />
               </Route>
-              <Route 
-                path="/backend-nodes" 
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <div>Open a project to manage its services.</div>
-                    </MainLayout>
-                  </ProtectedRoute>
-                } 
+              <Route
+                path="/nodes/backend"
+                element={<Navigate to="/projects" replace />}
               />
-              <Route 
-                path="/frontend-nodes" 
+              <Route
+                path="/nodes/frontend"
+                element={<Navigate to="/projects" replace />}
+              />
+              <Route
+                path="/preview-services"
+                element={<Navigate to="/projects" replace />}
+              />
+              <Route
+                path="/preview-nodes"
+                element={<Navigate to="/projects" replace />}
+              />
+              <Route
+                path="/environments"
                 element={
                   <ProtectedRoute>
                     <MainLayout>
-                      <div>Open a project to manage its services.</div>
+                      <EnvManagement />
                     </MainLayout>
                   </ProtectedRoute>
-                } 
+                }
               />
               <Route 
                 path="/users" 
@@ -134,7 +152,9 @@ function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Router>
-          <ReactQueryDevtools initialIsOpen={false} />
+          {import.meta.env.DEV ? (
+            <ReactQueryDevtools initialIsOpen={false} buttonPosition="bottom-left" />
+          ) : null}
         </AuthProvider>
         </AntdApp>
       </QueryClientProvider>

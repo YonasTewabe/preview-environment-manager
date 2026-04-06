@@ -1,5 +1,5 @@
 /**
- * Project.tag drives which service experience to show (DB enum: frontend | backend).
+ * Project.tag: frontend | backend
  */
 export const PROJECT_TAG = {
   WEB: "frontend",
@@ -7,18 +7,23 @@ export const PROJECT_TAG = {
 };
 
 export function isApiPreviewProject(tag) {
-  return tag === PROJECT_TAG.API;
+  const s = String(tag ?? "").toLowerCase();
+  return s === PROJECT_TAG.API || s === "api";
 }
 
 export function isWebPreviewProject(tag) {
   return !isApiPreviewProject(tag);
 }
 
-/** Display label: Frontend / Backend (matches DB enum, easier to scan). */
 export function previewKindShortLabel(tag) {
   if (tag == null || tag === "") return "—";
   const s = String(tag).toLowerCase();
-  if (s === PROJECT_TAG.API) return "Backend";
-  if (s === PROJECT_TAG.WEB) return "Frontend";
+  if (s === PROJECT_TAG.API || s === "api") return "Backend";
+  if (s === PROJECT_TAG.WEB || s === "frontend") return "Frontend";
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** Jenkins `TAG` param: always `frontend` or `backend` (matches server normalizeBuildTag). */
+export function jenkinsPreviewTag(projectTag) {
+  return isApiPreviewProject(projectTag) ? "backend" : "frontend";
 }

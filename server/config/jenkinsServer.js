@@ -3,23 +3,20 @@ function trimBase(url) {
 }
 
 export const JENKINS_BASE = trimBase(
-  process.env.JENKINS_BASE_URL || "https://pep-admin.ienetworks.co",
+  process.env.JENKINS_BASE_URL,
 );
 
-export const JENKINS_USER = process.env.JENKINS_USER || "pep-jenkins";
-export const JENKINS_PASSWORD = process.env.JENKINS_PASSWORD || "";
-
-/** Backend preview domain job (Jenkins job name). */
-export const JOB_BACKEND_PREVIEW =
-  process.env.JENKINS_JOB_BACKEND_PREVIEW || "test-preview";
+export const JENKINS_USER = process.env.JENKINS_USER;
+export const JENKINS_PASSWORD = process.env.JENKINS_PASSWORD;
 
 /** Deletes a preview domain in Jenkins. */
-export const JOB_DELETE_DOMAIN =
-  process.env.JENKINS_JOB_DELETE_DOMAIN || "Delete-Preview-Domain";
+export const JOB_DELETE_DOMAIN = process.env.JENKINS_JOB_DELETE_DOMAIN;
 
-/** Frontend preview deployment job. */
-export const JOB_FRONTEND_PREVIEW =
-  process.env.JENKINS_JOB_FRONTEND_PREVIEW || "test-preview-FE";
+/**
+ * Single parameterized preview build job (TAG, REPO_URL, BRANCH_NAME, PORT, DOMAIN_NAME, ENV_JSON).
+ * Optional env fallbacks so existing deployments keep working.
+ */
+export const JOB_PREVIEW = process.env.JENKINS_JOB_PREVIEW;
 
 export function jenkinsApiJsonUrl() {
   return `${JENKINS_BASE}/api/json`;

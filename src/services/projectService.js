@@ -117,21 +117,63 @@ export const projectService = {
     return response.data;
   },
 
-  // Env vars CRUD (per project)
-  listEnvVars: async (projectId) => {
-    const response = await api.get(`/projects/${projectId}/env-vars`);
+  listEnvProfiles: async (projectId) => {
+    const response = await api.get(`/projects/${projectId}/env-profiles`);
     return response.data;
   },
-  addEnvVar: async (projectId, key, value) => {
-    const response = await api.post(`/projects/${projectId}/env-vars`, { key, value });
+  createEnvProfile: async (projectId, body) => {
+    const response = await api.post(`/projects/${projectId}/env-profiles`, body);
     return response.data;
   },
-  updateEnvVar: async (projectId, key, value) => {
-    const response = await api.put(`/projects/${projectId}/env-vars/${encodeURIComponent(key)}`, { value });
+  patchEnvProfile: async (projectId, profileId, body) => {
+    const response = await api.patch(
+      `/projects/${projectId}/env-profiles/${profileId}`,
+      body,
+    );
     return response.data;
   },
-  deleteEnvVar: async (projectId, key) => {
-    const response = await api.delete(`/projects/${projectId}/env-vars/${encodeURIComponent(key)}`);
+  deleteEnvProfile: async (projectId, profileId) => {
+    const response = await api.delete(
+      `/projects/${projectId}/env-profiles/${profileId}`,
+    );
+    return response.data;
+  },
+
+  // Env vars CRUD (per project profile)
+  listEnvVars: async (projectId, profileId = null) => {
+    const response = await api.get(`/projects/${projectId}/env-vars`, {
+      params:
+        profileId != null && profileId !== ""
+          ? { profileId }
+          : undefined,
+    });
+    return response.data;
+  },
+  addEnvVar: async (projectId, key, value, profileId = null) => {
+    const response = await api.post(`/projects/${projectId}/env-vars`, {
+      key,
+      value,
+      ...(profileId != null ? { profileId } : {}),
+    });
+    return response.data;
+  },
+  updateEnvVar: async (projectId, key, value, profileId = null) => {
+    const response = await api.put(
+      `/projects/${projectId}/env-vars/${encodeURIComponent(key)}`,
+      { value, ...(profileId != null ? { profileId } : {}) },
+    );
+    return response.data;
+  },
+  deleteEnvVar: async (projectId, key, profileId = null) => {
+    const response = await api.delete(
+      `/projects/${projectId}/env-vars/${encodeURIComponent(key)}`,
+      {
+        params:
+          profileId != null && profileId !== ""
+            ? { profileId }
+            : undefined,
+      },
+    );
     return response.data;
   },
 };

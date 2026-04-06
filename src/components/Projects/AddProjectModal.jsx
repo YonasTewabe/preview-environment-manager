@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
 import {
   Modal,
   Form,
@@ -6,70 +6,130 @@ import {
   Button,
   Space,
   Divider,
-  DatePicker,
   Row,
   Col,
   Select,
-} from 'antd';
+  message,
+} from "antd";
 import {
   ProjectOutlined,
   BranchesOutlined,
   SaveOutlined,
-  CloseOutlined
-} from '@ant-design/icons';
-import dayjs from 'dayjs';
+  CloseOutlined,
+} from "@ant-design/icons";
+import dayjs from "dayjs";
 
 const { TextArea } = Input;
 
+const DUPLICATE_FIELD_NAMES = new Set([
+  "name",
+  "short_code",
+  "env_name",
+  "repository_url",
+]);
+
+/**
+ * Map API 400 duplicate response to { name, errors } for Form.setFields.
+ */
+function duplicateFieldFeedback(data) {
+  if (!data) return null;
+  let field = data.field;
+  const msg = data.error ? String(data.error) : "This value is already in use.";
+  if (!field || !DUPLICATE_FIELD_NAMES.has(field)) {
+    const low = msg.toLowerCase();
+    if (low.includes("short code")) field = "short_code";
+    else if (
+      low.includes("repository url") ||
+      low.includes("repository url is already")
+    )
+      field = "repository_url";
+    else if (low.includes("environment name")) field = "env_name";
+    else if (
+      low.includes("name already") ||
+      low.includes("with this name")
+    )
+      field = "name";
+  }
+  if (!field || !DUPLICATE_FIELD_NAMES.has(field)) return null;
+  return { name: field, errors: [msg] };
+}
+
 const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
   const [form] = Form.useForm();
-  const authUser=JSON.parse(window.localStorage.getItem('user'))
-  console.log(authUser,"OOOO")
+  const authUser = JSON.parse(window.localStorage.getItem("user"));
 
   const createdBy = Number.parseInt(authUser?.id, 10);
 
   useEffect(() => {
-    if (visible) {
-      if (isEdit && project) {
-        form.setFieldsValue({
-          ...project,
-          tag: project.tag || 'frontend',
-          last_build_date: project.last_build_date ? dayjs(project.last_build_date) : null,
-          created_at: project.created_at ? dayjs(project.created_at) : null,
-          updated_at: project.updated_at ? dayjs(project.updated_at) : null
-        });
-      } else {
-        form.resetFields();
-        form.setFieldsValue({
-          version: 'v1.0.0',
-          tag: 'frontend',
-        });
-      }
+    if (!visible) return;
+
+    const clearDuplicateErrors = () => {
+      form.setFields(
+        [...DUPLICATE_FIELD_NAMES].map((name) => ({ name, errors: [] })),
+      );
+    };
+
+    if (isEdit && project) {
+      const tag =
+        project.tag === "web"
+          ? "frontend"
+          : project.tag === "api"
+            ? "backend"
+            : project.tag || "frontend";
+      form.setFieldsValue({
+        name: project.name,
+        short_code: project.short_code,
+        env_name: project.env_name,
+        tag,
+        description: project.description,
+        repository_url: project.repository_url,
+        created_at: project.created_at ? dayjs(project.created_at) : null,
+        updated_at: project.updated_at ? dayjs(project.updated_at) : null,
+      });
+      clearDuplicateErrors();
+    } else {
+      form.resetFields();
+      clearDuplicateErrors();
     }
   }, [visible, isEdit, project, form]);
 
   const handleSubmit = async () => {
+    let values;
     try {
-      const values = await form.validateFields();
-      
-      // Format dates
-      const formattedValues = {
-        ...values,
-        created_by: Number.isFinite(createdBy) ? createdBy : 1,
-        last_build_date: values.last_build_date?.toISOString(),
-        created_at: values.created_at?.toISOString(),
-        updated_at: dayjs().toISOString(), // Always update the updated_at to now
-        short_code: values.name.length < 5
-          ? values.name.toLowerCase().replace(/\s+/g, '-')
-          : values.name
-              .split(' ')
-              .map(word => word[0])
-              .join('') 
-              .toLowerCase(),
-      };
+      values = await form.validateFields();
+    } catch {
+      return;
+    }
+
+    const formattedValues = {
+      ...values,
+      created_by: Number.isFinite(createdBy) ? createdBy : 1,
+      created_at: values.created_at?.toISOString(),
+      updated_at: dayjs().toISOString(),
+      short_code: String(values.short_code ?? "")
+        .trim()
+        .toLowerCase(),
+    };
+
+    try {
       await onSubmit(formattedValues);
     } catch (error) {
-      console.error('Form validation failed:', error);
+      const data = error?.response?.data;
+      const feedback = duplicateFieldFeedback(data);
+      if (feedback) {
+        form.setFields([feedback]);
+        return;
+      }
+      const low = String(data?.error || "").toLowerCase();
+      const looksDuplicate =
+        low.includes("already exists") ||
+        low.includes("already in use") ||
+        low.includes("already linked");
+      if (error?.response?.status === 400 && data?.error && looksDuplicate) {
+        message.error(String(data.error));
+      } else if (!error?.response) {
+        console.error("Project submit failed:", error);
+      }
     }
   };
 
@@ -77,8 +137,7 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
     <Modal
       title={
         <div className="flex items-center">
-          <ProjectOutlined className="mr-2 text-blue-600" />
-          {isEdit ? 'Edit Project' : 'Add New Project'}
+          {isEdit ? "Edit Project" : "Add New Project"}
         </div>
       }
       open={visible}
@@ -93,23 +152,46 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
         onFinish={handleSubmit}
         className="space-y-4"
       >
-        <Row gutter={[16, 0]}>
-          <Col xs={24} md={24}>
+        <Row gutter={[16, 0]} align="top">
+          <Col xs={24} md={16}>
             <Form.Item
               name="name"
-              label={
-                <span className="flex items-center">
-                  <ProjectOutlined className="mr-1" />
-                  Project Name
-                </span>
-              }
+              label={<span className="flex items-center">Project Name</span>}
               rules={[
-                { required: true, message: 'Please enter project name' },
-                { min: 3, message: 'Project name must be at least 3 characters' },
-                { max: 50, message: 'Project name cannot exceed 50 characters' }
+                { required: true, message: "Please enter project name" },
+                {
+                  min: 3,
+                  message: "Project name must be at least 3 characters",
+                },
+                {
+                  max: 50,
+                  message: "Project name cannot exceed 50 characters",
+                },
               ]}
             >
               <Input placeholder="Enter project name" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={8}>
+            <Form.Item
+              name="short_code"
+              label="Short code"
+              extra="Used in preview domains (e.g. acme-1234-fe). Letters, numbers, -, _."
+              rules={[
+                { required: true, message: "Please enter a short code" },
+                {
+                  min: 2,
+                  max: 10,
+                  message: "Short code must be 2–10 characters",
+                },
+                {
+                  pattern: /^[a-z0-9-]+$/i,
+                  message:
+                    "Use only letters, numbers, and hyphen (no spaces)",
+                },
+              ]}
+            >
+              <Input placeholder="e.g., acme-portal" autoComplete="off" />
             </Form.Item>
           </Col>
         </Row>
@@ -120,10 +202,19 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
               name="env_name"
               label="Environment Name"
               rules={[
-                { required: true, message: 'Please enter environment name' },
-                { min: 2, message: 'Environment name must be at least 2 characters' },
-                { max: 50, message: 'Environment name cannot exceed 50 characters' },
-                { pattern: /^[a-z0-9_-]+$/i, message: 'Use only letters, numbers, underscore, and hyphen' },
+                { required: true, message: "Please enter environment name" },
+                {
+                  min: 2,
+                  message: "Environment name must be at least 2 characters",
+                },
+                {
+                  max: 50,
+                  message: "Environment name cannot exceed 50 characters",
+                },
+                {
+                  pattern: /^[a-z0-9_-]+$/i,
+                  message: "Use only letters, numbers, underscore, and hyphen",
+                },
               ]}
             >
               <Input placeholder="e.g., org-structure-dev" />
@@ -133,13 +224,18 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
             <Form.Item
               name="tag"
               label="Tag"
-              rules={[{ required: true, message: 'Please select frontend or backend' }]}
+              rules={[
+                {
+                  required: true,
+                  message: "Please select Frontend or Backend",
+                },
+              ]}
             >
               <Select
                 placeholder="Select tag"
                 options={[
-                  { value: 'frontend', label: 'Frontend' },
-                  { value: 'backend', label: 'Backend' },
+                  { value: "frontend", label: "Frontend" },
+                  { value: "backend", label: "Backend" },
                 ]}
               />
             </Form.Item>
@@ -150,8 +246,7 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
           name="description"
           label="Description"
           rules={[
-            { required: true, message: 'Please enter project description' },
-            { max: 500, message: 'Description cannot exceed 500 characters' }
+            { max: 500, message: "Description cannot exceed 500 characters" },
           ]}
         >
           <TextArea
@@ -163,7 +258,7 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
         </Form.Item>
 
         <Row gutter={[16, 0]}>
-          <Col xs={24} md={12}>
+          <Col span={24}>
             <Form.Item
               name="repository_url"
               label={
@@ -173,8 +268,8 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
                 </span>
               }
               rules={[
-                { required: true, message: 'Please enter repository URL' },
-                { type: 'url', message: 'Please enter a valid URL' }
+                { required: true, message: "Please enter repository URL" },
+                { type: "url", message: "Please enter a valid URL" },
               ]}
             >
               <Input placeholder="https://github.com/username/repo" />
@@ -189,13 +284,12 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
             <Button onClick={onCancel} icon={<CloseOutlined />}>
               Cancel
             </Button>
-            <Button 
-              type="primary" 
+            <Button
+              type="primary"
               htmlType="submit"
-              icon={<SaveOutlined />}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {isEdit ? 'Update Project' : 'Create Project'}
+              {isEdit ? "Update Project" : "Create Project"}
             </Button>
           </Space>
         </Form.Item>

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { App } from 'antd';
 import { userService } from '../services/userService';
+import { invalidateAndRefetchActive } from '../utils/invalidateQueries';
 
 // Query keys
 export const USER_QUERY_KEYS = {
@@ -52,12 +53,13 @@ export const useCreateUser = () => {
 
   return useMutation({
     mutationFn: userService.createUser,
-    onSuccess: (newUser) => {
-      // Invalidate and refetch users list
-      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.lists() });
-      
-      // Optionally add the new user to the cache
+    onSuccess: async (newUser) => {
       queryClient.setQueryData(USER_QUERY_KEYS.detail(newUser.id), newUser);
+      await invalidateAndRefetchActive(
+        queryClient,
+        USER_QUERY_KEYS.all,
+        USER_QUERY_KEYS.lists(),
+      );
       
       // Show success message with email notification
       if (newUser.emailSent) {
@@ -85,13 +87,14 @@ export const useUpdateUser = () => {
 
   return useMutation({
     mutationFn: ({ id, ...userData }) => userService.updateUser(id, userData),
-    onSuccess: (updatedUser) => {
-      // Update the specific user in cache
+    onSuccess: async (updatedUser) => {
       queryClient.setQueryData(USER_QUERY_KEYS.detail(updatedUser.id), updatedUser);
-      
-      // Invalidate users list to reflect changes
-      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.lists() });
-      
+      await invalidateAndRefetchActive(
+        queryClient,
+        USER_QUERY_KEYS.all,
+        USER_QUERY_KEYS.lists(),
+        USER_QUERY_KEYS.detail(updatedUser.id),
+      );
       message.success('User updated successfully');
     },
     onError: (error) => {
@@ -109,13 +112,13 @@ export const useDeleteUser = () => {
 
   return useMutation({
     mutationFn: userService.deleteUser,
-    onSuccess: (_, deletedUserId) => {
-      // Remove user from cache
+    onSuccess: async (_, deletedUserId) => {
       queryClient.removeQueries({ queryKey: USER_QUERY_KEYS.detail(deletedUserId) });
-      
-      // Invalidate users list
-      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.lists() });
-      
+      await invalidateAndRefetchActive(
+        queryClient,
+        USER_QUERY_KEYS.all,
+        USER_QUERY_KEYS.lists(),
+      );
       message.success('User deleted successfully');
     },
     onError: (error) => {
@@ -133,13 +136,14 @@ export const useUpdateUserStatus = () => {
 
   return useMutation({
     mutationFn: ({ id, status }) => userService.updateUserStatus(id, status),
-    onSuccess: (updatedUser) => {
-      // Update the specific user in cache
+    onSuccess: async (updatedUser) => {
       queryClient.setQueryData(USER_QUERY_KEYS.detail(updatedUser.id), updatedUser);
-      
-      // Invalidate users list to reflect changes
-      queryClient.invalidateQueries({ queryKey: USER_QUERY_KEYS.lists() });
-      
+      await invalidateAndRefetchActive(
+        queryClient,
+        USER_QUERY_KEYS.all,
+        USER_QUERY_KEYS.lists(),
+        USER_QUERY_KEYS.detail(updatedUser.id),
+      );
       message.success('User status updated successfully');
     },
     onError: (error) => {

@@ -1,198 +1,141 @@
-import { UrlConfig, FrontendNode, Project } from '../models/index.js';
+import { Node, Project, ProjectEnvProfile } from '../models/index.js';
+
+export function normalizeUrlConfigList(raw) {
+  if (raw == null) return [];
+  if (Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try {
+      const p = JSON.parse(raw);
+      return Array.isArray(p) ? p : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function nextConfigId(existing) {
+  const nums = existing.map((c) => Number(c.id)).filter((n) => Number.isFinite(n));
+  return nums.length ? Math.max(...nums) + 1 : 1;
+}
 
 class UrlConfigService {
-  /**
-   * Create URL configs from deployment data
-   * @param {Array} urlConfigs - Array of URL config objects
-   * @param {number} frontnodeId - Frontend node ID
-   * @returns {Promise<Array>} - Created URL configs
-   */
-  async createUrlConfigsFromDeployment(urlConfigs, frontnodeId) {
-    try {
-      const node = await FrontendNode.findByPk(frontnodeId, {
-        include: [
-          {
-            model: Project,
-            as: 'project',
-            attributes: ['id', 'env_name', 'short_code'],
-          },
-        ],
-      });
-      const projectEnvName = node?.project?.env_name || node?.project?.short_code || null;
+  async createUrlConfigsFromDeployment(urlConfigs, frontendNodeId) {
+    const node = await Node.findOne({
+      where: { id: frontendNodeId, role: 'frontend', is_deleted: false },
+      include: [
+        {
+          model: Project,
+          as: 'project',
+          attributes: ['id', 'env_name', 'short_code'],
+        },
+        {
+          model: ProjectEnvProfile,
+          as: 'envProfile',
+          attributes: ['name'],
+          required: false,
+        },
+      ],
+    });
+    if (!node) {
+      throw new Error('Frontend node not found');
+    }
+    const projectEnvName =
+      node?.envProfile?.name ||
+      node?.project?.env_name ||
+      node?.project?.short_code ||
+      null;
 
-      const configsToCreate = urlConfigs.map(config => ({
-        name: config.name,
-        url: config.url,
+    const existing = normalizeUrlConfigList(node.url_configs);
+    const merged = [...existing];
+
+    for (const config of urlConfigs) {
+      const name = config.name;
+      const url = config.url;
+      const idx = merged.findIndex((c) => c.name === name);
+      const row = {
+        id: idx >= 0 ? merged[idx].id : nextConfigId(merged),
+        name,
+        url,
         description: config.description || '',
-        frontnode_id: frontnodeId,
+        serviceType: config.serviceType || 'api',
+        defaultUrl: config.defaultUrl || null,
         env_name: projectEnvName,
-        service_type: config.serviceType || 'api',
-        default_url: config.defaultUrl || null,
-        created_at: new Date(),
-        updated_at: new Date(),
-        is_deleted: false
-      }));
-      const existingConfigs = await UrlConfig.findAll({
-        where: {
-          frontnode_id: frontnodeId,
-          is_deleted: false
-        }
-      });
-      let updatedConfigs;
-      if (existingConfigs.length > 0) {
-        // Update existing configs
-        await Promise.all(
-          configsToCreate.map(cfg => {
-            return UrlConfig.update(
-              {
-                name: cfg.name,
-                url: cfg.url,
-                description: cfg.description,
-                service_type: cfg.service_type,
-                default_url: cfg.default_url,
-                updated_at: new Date(),
-                is_deleted: false
-              },
-              {
-                where: {
-                  frontnode_id: frontnodeId,
-                  name: cfg.name
-                }
-              }
-            );
-          })
-        );
-        
-        // Fetch the updated configs
-        updatedConfigs = await UrlConfig.findAll({
-          where: {
-            frontnode_id: frontnodeId,
-            is_deleted: false
-          }
-        });
-      } else {
-        // Create new configs if none exist
-        updatedConfigs = await UrlConfig.bulkCreate(configsToCreate);
-      }
-      
-      return updatedConfigs;
-    } catch (error) {
-      console.error('❌ Error creating URL configs:', error);
-      throw error;
+        is_deleted: false,
+      };
+      if (idx >= 0) merged[idx] = row;
+      else merged.push(row);
     }
+
+    await node.update({
+      url_configs: merged,
+      updated_at: new Date(),
+    });
+
+    return merged;
   }
 
-  /**
-   * Get URL configs by frontend node ID
-   * @param {number} frontnodeId - Frontend node ID
-   * @returns {Promise<Array>} - URL configs
-   */
-  async getUrlConfigsByFrontendNode(frontnodeId) {
-    try {
-      const configs = await UrlConfig.findAll({
-        where: {
-          frontnode_id: frontnodeId,
-          is_deleted: false
-        },
-        order: [['created_at', 'DESC']]
-      });
-      
-      return configs;
-    } catch (error) {
-      console.error('❌ Error fetching URL configs:', error);
-      throw error;
-    }
+  async getUrlConfigsByWebNode(frontendNodeId) {
+    const node = await Node.findOne({
+      where: { id: frontendNodeId, role: 'frontend', is_deleted: false },
+      attributes: ['id', 'url_configs'],
+    });
+    return normalizeUrlConfigList(node?.url_configs);
   }
 
-  /**
-   * Update URL config
-   * @param {number} id - URL config ID
-   * @param {Object} updateData - Data to update
-   * @returns {Promise<Object>} - Updated URL config
-   */
-  async updateUrlConfig(id, updateData) {
-    try {
-      const config = await UrlConfig.findByPk(id);
-      if (!config) {
-        throw new Error('URL config not found');
-      }
-
-      const updatedConfig = await config.update({
-        ...updateData,
-        updated_at: new Date()
-      });
-
-      return updatedConfig;
-    } catch (error) {
-      console.error('❌ Error updating URL config:', error);
-      throw error;
-    }
+  async deleteUrlConfigsByWebNode(frontendNodeId) {
+    const node = await Node.findOne({
+      where: { id: frontendNodeId, role: 'frontend', is_deleted: false },
+    });
+    if (!node) return 0;
+    await node.update({ url_configs: [], updated_at: new Date() });
+    return 1;
   }
 
-  /**
-   * Soft delete URL config
-   * @param {number} id - URL config ID
-   * @returns {Promise<boolean>} - Success status
-   */
-  async deleteUrlConfig(id) {
-    try {
-      const config = await UrlConfig.findByPk(id);
-      if (!config) {
-        throw new Error('URL config not found');
-      }
-
-      await config.update({
-        is_deleted: true,
-        updated_at: new Date()
-      });
-
-      return true;
-    } catch (error) {
-      console.error('❌ Error deleting URL config:', error);
-      throw error;
+  /** Find frontend node that holds url config id; return { node, list, index } */
+  async findConfigHolder(configId) {
+    const cid = parseInt(configId, 10);
+    if (!Number.isFinite(cid)) return null;
+    const nodes = await Node.findAll({
+      where: { role: 'frontend', is_deleted: false },
+      attributes: ['id', 'url_configs'],
+    });
+    for (const n of nodes) {
+      const list = normalizeUrlConfigList(n.url_configs);
+      const idx = list.findIndex((c) => Number(c.id) === cid);
+      if (idx >= 0) return { node: n, list, idx };
     }
+    return null;
   }
 
-  /**
-   * Get URL config by ID
-   * @param {number} id - URL config ID
-   * @returns {Promise<Object>} - URL config
-   */
-  async getUrlConfigById(id) {
-    try {
-      const config = await UrlConfig.findByPk(id);
-      return config;
-    } catch (error) {
-      console.error('❌ Error fetching URL config:', error);
-      throw error;
-    }
+  async getUrlConfigById(configId) {
+    const hit = await this.findConfigHolder(configId);
+    if (!hit) return null;
+    return hit.list[hit.idx];
   }
 
-  /**
-   * Soft delete all URL configs for a specific frontend node
-   * @param {number} frontnodeId - Frontend node ID
-   * @returns {Promise<number>} - Number of configs deleted
-   */
-  async deleteUrlConfigsByFrontendNode(frontnodeId) {
-    try {
-      const result = await UrlConfig.update(
-        {
-          is_deleted: true,
-          updated_at: new Date()
-        },
-        {
-          where: {
-            frontnode_id: frontnodeId,
-            is_deleted: false
-          }
-        }
-      );
-      
-      return result[0];
-    } catch (error) {
-      console.error('❌ Error deleting URL configs by frontend node:', error);
-      throw error;
-    }
+  async deleteUrlConfigById(configId) {
+    const hit = await this.findConfigHolder(configId);
+    if (!hit) throw new Error('URL config not found');
+    const next = hit.list.filter((_, i) => i !== hit.idx);
+    await Node.update(
+      { url_configs: next, updated_at: new Date() },
+      { where: { id: hit.node.id } },
+    );
+    return true;
+  }
+
+  async updateUrlConfig(configId, updateData) {
+    const hit = await this.findConfigHolder(configId);
+    if (!hit) throw new Error('URL config not found');
+    const row = { ...hit.list[hit.idx], ...updateData, updated_at: new Date() };
+    const next = [...hit.list];
+    next[hit.idx] = row;
+    await Node.update(
+      { url_configs: next, updated_at: new Date() },
+      { where: { id: hit.node.id } },
+    );
+    return row;
   }
 }
 

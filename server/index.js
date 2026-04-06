@@ -5,11 +5,12 @@ import cors from "cors";
 import githubRoutes from "./routes/github.js";
 import buildRoutes from "./routes/build.js";
 import jenkinsRoutes from "./routes/jenkins.js";
-import nodesRoutes from "./routes/nodes.js";
-import backendnodesRoutes from "./routes/backendnodes.js";
+import nodesSampleFileRoutes from "./routes/nodesSampleFileRoutes.js";
 import projectsRoutes from "./routes/projects.js";
 import usersRoutes from "./routes/users.js";
-import frontendnodesRoutes from "./routes/frontendnodes.js";
+import previewDeployRoutes from "./routes/previewDeployRoutes.js";
+import previewServicesRoutes from "./routes/previewServicesRoutes.js";
+import nodeByIdRoutes from "./routes/nodeByIdRoutes.js";
 import authRoutes from "./routes/auth.js";
 import emailRoutes from "./routes/emails.js";
 import branchRoutes from "./routes/branches.js";
@@ -18,6 +19,7 @@ import environmentsRoutes from "./routes/environments.js";
 
 import { testConnection } from "./config/database.js";
 import { initAssociations, syncDatabase } from "./models/index.js";
+import { scheduleStalePreviewNodeCleanup } from "./jobs/stalePreviewNodeCleanup.js";
 
 dotenv.config();
 const app = express();
@@ -32,7 +34,6 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like Postman or curl)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -46,15 +47,28 @@ app.use(cors({
 
 app.use(express.json());
 
-// ✅ API Routes
+// ✅ API Routes — preview nodes (deploy/env/build + frontend-role create)
+app.use("/api/preview-nodes", previewDeployRoutes);
+// ✅ API Routes — preview service parents (api_service CRUD, import/export)
+app.use("/api/preview-services", previewServicesRoutes);
+/** Unified GET (and legacy redirects use this) */
+app.use("/api/node", nodeByIdRoutes);
+
 app.use("/api/github", githubRoutes);
 app.use("/api", buildRoutes);
 app.use("/api/jenkins", jenkinsRoutes);
-app.use("/api/nodes", nodesRoutes);
-app.use("/api/backendnodes", backendnodesRoutes);
+app.use("/api/nodes-static-json", nodesSampleFileRoutes);
 app.use("/api/projects", projectsRoutes);
 app.use("/api/users", usersRoutes);
-app.use("/api/frontendnodes", frontendnodesRoutes);
+
+// Legacy path aliases (same routers)
+app.use("/api/nodes/backend", previewServicesRoutes);
+app.use("/api/nodes/frontend", previewDeployRoutes);
+app.use("/api/preview-nodes/web", previewDeployRoutes);
+app.use("/api/preview-nodes/api", previewServicesRoutes);
+app.use("/api/backendnodes", previewServicesRoutes);
+app.use("/api/frontendnodes", previewDeployRoutes);
+
 app.use("/api/auth", authRoutes);
 app.use("/api/emails", emailRoutes);
 app.use("/api/branches", branchRoutes);
@@ -70,28 +84,24 @@ app.use((err, req, res, next) => {
 // ✅ Initialize associations and DB connection before routes execute
 const startServer = async () => {
   try {
-    // Initialize associations first
     initAssociations();
-    
-    // Test database connection
+
     await testConnection();
-    
-    // Sync database to create missing tables (won't alter existing tables)
+
     try {
-      await syncDatabase(false);
-      console.log('✅ Database tables synced');
+      await syncDatabase();
+      console.log("✅ Database synchronized successfully");
     } catch (syncError) {
-      console.warn('⚠️  Database sync warning:', syncError.message);
-      // Continue even if sync has issues (tables might already exist)
+      console.warn("⚠️  Database sync warning:", syncError.message);
     }
-    
-    // Start server after successful connection
+
     const PORT = process.env.PORT || 4000;
     app.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🚀 Server is running on port ${PORT}`);
+      scheduleStalePreviewNodeCleanup();
     });
   } catch (error) {
-    console.error('Failed to start server:', error);
+    console.error("❌ Startup failed:", error.message);
     process.exit(1);
   }
 };
