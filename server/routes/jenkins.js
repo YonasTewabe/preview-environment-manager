@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import express from "express";
 import axios from "axios";
 import { Op } from "sequelize";

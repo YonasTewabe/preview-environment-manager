@@ -17,7 +17,7 @@ const createUser = async () => {
     const existingUser = await User.findOne({ where: { email: 'surafel@ienetworks.co' } });
     
     if (existingUser) {
-      console.log('❌ User with email surafel@ienetworks.co already exists');
+      console.warn('❌ User with email surafel@ienetworks.co already exists');
       process.exit(1);
     }
     
@@ -33,14 +33,14 @@ const createUser = async () => {
       status: 'active',
     });
     
-    console.log('✅ User created successfully!');
-    console.log('User details:');
-    console.log(`  ID: ${user.id}`);
-    console.log(`  Name: ${user.first_name} ${user.last_name}`);
-    console.log(`  Email: ${user.email}`);
-    console.log(`  Username: ${user.username}`);
-    console.log(`  Role: ${user.role}`);
-    console.log(`  Status: ${user.status}`);
+    console.warn('✅ User created successfully!');
+    console.warn('User details:');
+    console.warn(`  ID: ${user.id}`);
+    console.warn(`  Name: ${user.first_name} ${user.last_name}`);
+    console.warn(`  Email: ${user.email}`);
+    console.warn(`  Username: ${user.username}`);
+    console.warn(`  Role: ${user.role}`);
+    console.warn(`  Status: ${user.status}`);
     
     process.exit(0);
   } catch (error) {

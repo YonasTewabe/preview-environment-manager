@@ -20,8 +20,7 @@ const AppHeader = ({ title = "Preview Builder" }) => {
       icon: <UserOutlined />,
       label: 'Profile',
       onClick: () => {
-        // Navigate to profile page when implemented
-        console.log('Profile clicked');
+        navigate('/profile');
       }
     },
     {
@@ -29,8 +28,7 @@ const AppHeader = ({ title = "Preview Builder" }) => {
       icon: <SettingOutlined />,
       label: 'Settings',
       onClick: () => {
-        // Navigate to settings page when implemented
-        console.log('Settings clicked');
+        navigate('/profile');
       }
     },
     {

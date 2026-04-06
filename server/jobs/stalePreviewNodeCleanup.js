@@ -41,11 +41,11 @@ export async function runStalePreviewNodeCleanup() {
   });
 
   if (stale.length === 0) {
-    console.log("[stale-preview-cleanup] No stale preview nodes found.");
+    console.warn("[stale-preview-cleanup] No stale preview nodes found.");
     return;
   }
 
-  console.log(
+  console.warn(
     `[stale-preview-cleanup] Found ${stale.length} stale preview node(s) (older than ${days}d).`,
   );
 
@@ -57,7 +57,7 @@ export async function runStalePreviewNodeCleanup() {
         const domain = String(node.domain_name).trim();
         const jResult = await deletePreviewDomainViaJenkins(domain);
         if (jResult.success) {
-          console.log(
+          console.warn(
             `[stale-preview-cleanup] Jenkins preview teardown ok for node ${id} (${label}), domain=${domain} (DB row kept).`,
           );
         } else {
@@ -67,7 +67,7 @@ export async function runStalePreviewNodeCleanup() {
           );
         }
       } else {
-        console.log(
+        console.warn(
           `[stale-preview-cleanup] Skipped Jenkins for stale node ${id} (${label}) — no domain / preview to tear down.`,
         );
       }
@@ -82,7 +82,7 @@ export async function runStalePreviewNodeCleanup() {
 
 export function scheduleStalePreviewNodeCleanup() {
   if (process.env.DISABLE_STALE_PREVIEW_NODE_CRON === "1") {
-    console.log(
+    console.warn(
       "⏭️ Stale preview node cron disabled (DISABLE_STALE_PREVIEW_NODE_CRON=1).",
     );
     return;
@@ -95,7 +95,7 @@ export function scheduleStalePreviewNodeCleanup() {
     });
   });
 
-  console.log(
+  console.warn(
     `📅 Stale preview node cleanup cron: "${schedule}" (STALE_PREVIEW_NODE_DAYS=${process.env.STALE_PREVIEW_NODE_DAYS ?? "5"}, Jenkins only — DB unchanged)`,
   );
 }

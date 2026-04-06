@@ -74,7 +74,7 @@ export const importNodesFromFile = async (file) => {
         } else {
           reject(new Error('Invalid file format: nodes array not found'));
         }
-      } catch (error) {
+      } catch (_error) {
         reject(new Error('Invalid JSON file'));
       }
     };

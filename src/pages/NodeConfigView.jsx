@@ -357,7 +357,6 @@ export default function NodeConfigView({
     previewLink: null,
     portNumber: null,
   });
-  const [selectedUrlConfigIds, setSelectedUrlConfigIds] = useState([]);
   const navigate = useNavigate();
   const {
     data: selectedNode,
@@ -984,8 +983,6 @@ export default function NodeConfigView({
         })),
       };
 
-      console.log("Deploying with params:", { deployParams });
-
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}jenkins/trigger-preview-job`,
         {
@@ -998,7 +995,6 @@ export default function NodeConfigView({
       );
 
       const result = await response.json();
-      console.log(result, "ressdfdfult");
 
       if (result.success) {
         setDeployProgress({
@@ -1032,7 +1028,6 @@ export default function NodeConfigView({
               "Deployment succeeded but failed to save URL configurations",
             );
           } else {
-            console.log("✅ URL configurations saved to database successfully");
             message.success("URL configurations saved successfully");
             // Refresh the frontend node data to get updated URL configs
             invalidateNodeDetailQueries();
@@ -1200,7 +1195,6 @@ export default function NodeConfigView({
         (rebuildSc
           ? `${rebuildSc}-${rebuildFallbackNum}${rebuildFeSuffix}`
           : null);
-      console.log(selectedNode, "selectedNode");
       const rebuildParams = {
         TAG: jenkinsPreviewTag(
           selectedNode?.project?.tag ?? projectFromRoute?.tag,
@@ -1214,16 +1208,12 @@ export default function NodeConfigView({
         })),
       };
 
-      console.log("Rebuilding with params:", rebuildParams);
-
       // Trigger Jenkins build with callbacks
       await triggerJenkinsFrontBuild(
         rebuildParams,
         // Success callback
         async (jenkinsData) => {
           try {
-            console.log(jenkinsData, "jenkinsData success rebuild");
-
             // Store URL configurations in the database
             try {
               const response = await fetch(
@@ -1252,9 +1242,6 @@ export default function NodeConfigView({
                   "Rebuild succeeded but failed to save URL configurations",
                 );
               } else {
-                console.log(
-                  "✅ URL configurations saved to database successfully",
-                );
                 message.success("URL configurations saved successfully");
                 // Refresh the frontend node data to get updated URL configs
                 invalidateNodeDetailQueries();

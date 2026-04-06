@@ -12,7 +12,7 @@ const initializeDatabase = async () => {
     const existingAdmin = await User.findOne({ where: { username: 'admin' } });
     
     if (!existingAdmin) {
-      const adminUser = await User.create({
+      await User.create({
         username: 'admin',
         email: 'admin@preview-builder.local',
         first_name: 'Admin',

@@ -27,7 +27,6 @@ export default function BuildTrigger({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ owner, repo, branch }),
       });
-      console.log(owner);
 
       const data = await res.json();
 

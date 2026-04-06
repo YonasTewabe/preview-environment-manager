@@ -1,4 +1,3 @@
-/* eslint-disable no-undef */
 import { Router } from "express";
 import axios from "axios";
 import dotenv from "dotenv";

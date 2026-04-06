@@ -5,16 +5,16 @@ dotenv.config();
 
 const fixMissingTables = async () => {
   try {
-    console.log('🔌 Testing database connection...');
+    console.warn('🔌 Testing database connection...');
     await testConnection();
-    console.log('✅ Database connection successful\n');
+    console.warn('✅ Database connection successful\n');
     
-    console.log('📦 Syncing database models (creating missing tables)...');
+    console.warn('📦 Syncing database models (creating missing tables)...');
     initAssociations();
     await syncDatabase(false); // false = don't force recreate, just create missing
     
-    console.log('\n✅ Database sync completed!');
-    console.log('All tables including environments and project_environments should now exist.');
+    console.warn('\n✅ Database sync completed!');
+    console.warn('All tables including environments and project_environments should now exist.');
     
     await sequelize.close();
     process.exit(0);

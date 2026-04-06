@@ -74,7 +74,7 @@ export const importBackendServicesFromFile = async (file) => {
         } else {
           reject(new Error('Invalid file format: backendServices array not found'));
         }
-      } catch (error) {
+      } catch (_error) {
         reject(new Error('Invalid JSON file'));
       }
     };

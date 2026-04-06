@@ -178,9 +178,6 @@ export const useResendWelcomeEmail = () => {
     mutationFn: userService.resendWelcomeEmail,
     onSuccess: (result) => {
       message.success(result.message || 'Welcome email sent successfully');
-      if (result.previewUrl) {
-        console.log('Email preview URL:', result.previewUrl);
-      }
     },
     onError: (error) => {
       console.error('Error resending welcome email:', error);
@@ -196,11 +193,8 @@ export const useTestEmail = () => {
   
   return useMutation({
     mutationFn: userService.testEmail,
-    onSuccess: (result) => {
+    onSuccess: () => {
       message.success('Test email sent successfully');
-      if (result.previewUrl) {
-        console.log('Email preview URL:', result.previewUrl);
-      }
     },
     onError: (error) => {
       console.error('Error sending test email:', error);
@@ -216,7 +210,7 @@ export const useChangePassword = () => {
   
   return useMutation({
     mutationFn: ({ userId, passwordData }) => userService.changePassword(userId, passwordData),
-    onSuccess: (data) => {
+    onSuccess: () => {
       message.success('Password changed successfully!');
     },
     onError: (error) => {

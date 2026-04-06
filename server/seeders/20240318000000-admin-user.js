@@ -2,7 +2,7 @@
 const bcrypt = require('bcrypt');
 
 module.exports = {
-  async up(queryInterface, Sequelize) {
+  async up(queryInterface, _Sequelize) {
     // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('%TGBnhy6', salt);
@@ -22,7 +22,7 @@ module.exports = {
     }], {});
   },
 
-  async down(queryInterface, Sequelize) {
+  async down(queryInterface, _Sequelize) {
     // Remove the admin user
     await queryInterface.bulkDelete('users', {
       email: 'admin@example.com'

@@ -133,13 +133,6 @@ const ProfileInfo = () => {
     return true;
   };
 
-  const uploadButton = (
-    <div className="flex flex-col items-center justify-center">
-      <CameraOutlined className="text-2xl text-gray-400 mb-2" />
-      <div className="text-sm text-gray-500">Upload Photo</div>
-    </div>
-  );
-
   // Handle loading and error states
   if (userLoading && !currentUser) {
     return (
@@ -203,7 +196,7 @@ const ProfileInfo = () => {
                   showUploadList={false}
                   beforeUpload={beforeUpload}
                   onChange={handleAvatarChange}
-                  customRequest={({ file, onSuccess }) => {
+                  customRequest={({ onSuccess }) => {
                     // Simulate upload
                     setTimeout(() => {
                       onSuccess("ok");
@@ -295,7 +288,7 @@ const ProfileInfo = () => {
                 label="Phone Number"
                 name="phone"
                 rules={[
-                  { pattern: /^[\+]?[1-9][\d]{0,15}$/, message: 'Please enter a valid phone number' }
+                  { pattern: /^[+]?[1-9][\d]{0,15}$/, message: 'Please enter a valid phone number' }
                 ]}
               >
                 <Input

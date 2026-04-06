@@ -89,14 +89,6 @@ const UserManagement = () => {
     updateUserMutation.isPending ||
     deleteUserMutation.isPending;
 
-  const totalUsers = allUsers.length;
-  const activeUsersCount = useMemo(
-    () =>
-      allUsers.filter((u) => String(u.status ?? "").toLowerCase() === "active")
-        .length,
-    [allUsers],
-  );
-
   useEffect(() => {
     const pages = Math.max(
       1,

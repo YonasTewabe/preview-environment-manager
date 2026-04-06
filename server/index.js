@@ -76,7 +76,7 @@ app.use("/api/urlconfigs", urlConfigsRoutes);
 app.use("/api", environmentsRoutes);
 
 // ✅ Error handling middleware
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   console.error(err.stack);
   res.status(500).json({ error: "Something went wrong!" });
 });
@@ -90,14 +90,14 @@ const startServer = async () => {
 
     try {
       await syncDatabase();
-      console.log("✅ Database synchronized successfully");
+      console.warn("✅ Database synchronized successfully");
     } catch (syncError) {
       console.warn("⚠️  Database sync warning:", syncError.message);
     }
 
     const PORT = process.env.PORT || 4000;
     app.listen(PORT, () => {
-      console.log(`🚀 Server is running on port ${PORT}`);
+      console.warn(`🚀 Server is running on port ${PORT}`);
       scheduleStalePreviewNodeCleanup();
     });
   } catch (error) {

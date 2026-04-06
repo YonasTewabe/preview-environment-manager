@@ -64,11 +64,12 @@ export function useBackendServices() {
   };
 
   const handleDeleteBranch = async (serviceId, branchId) => {
+    let branchSnapshot = null;
     try {
       // Find the branch to get its domain name
       const service = backendServices.find((s) => s.id === serviceId);
       const branch = service?.branches?.find((b) => b.id === branchId);
-      console.log(service, branch, "serviceId,branchId");
+      branchSnapshot = branch ?? null;
 
       if (!branch || !branch.domainName) {
         message.error("Branch or domain name not found");
@@ -85,17 +86,13 @@ export function useBackendServices() {
       });
 
       // Call Jenkins delete job
-      console.log("Sending delete request for domain:", branch.domainName);
       const response = await axios.post(
         `${appApiBase()}jenkins/delete-preview-job`,
         {
           DOMAIN_NAME: branch.domainName,
         },
       );
-      console.log("Jenkins delete response:", response.data);
-
       if (response.data.success) {
-        console.log("Jenkins delete successful, removing branch from JSON");
         // Remove branch from JSON
         setBackendServices(
           backendServices.map((service) => {
@@ -133,7 +130,6 @@ export function useBackendServices() {
           `Branch "${branch.name}" and domain "${branch.domainName}" deleted successfully`
         );
       } else {
-        console.log("Jenkins delete failed:", response.data.message);
         // Update progress to failed
         setDeleteProgress({
           stage: "failed",
@@ -164,8 +160,8 @@ export function useBackendServices() {
           error.response?.data?.message ||
           error.message ||
           "Failed to delete branch. Please try again.",
-        domainName: branch?.domainName || "",
-        branchName: branch?.name || "",
+        domainName: branchSnapshot?.domainName || "",
+        branchName: branchSnapshot?.name || "",
       });
 
       // Close modal after 3 seconds

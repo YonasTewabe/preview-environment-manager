@@ -13,8 +13,6 @@ export function useGitHub() {
       const repoName = repo_name
         ? repo_name
         : repoUrl.replace("https://github.com/", "").replace(".git", "");
-      console.log("Fetching ALL branches for repo:", repoName);
-
       let allBranches = [];
       let page = 1;
       let hasMorePages = true;
@@ -33,18 +31,8 @@ export function useGitHub() {
           },
         );
 
-        console.log(
-          `GitHub API Response Status (Page ${page}):`,
-          response.status,
-        );
-
         if (response.ok) {
           const branchesData = await response.json();
-          console.log(
-            `Branches data (Page ${page}):`,
-            branchesData.length,
-            "branches",
-          );
 
           if (branchesData.length === 0) {
             hasMorePages = false;
@@ -71,7 +59,6 @@ export function useGitHub() {
       const branchNames = allBranches.map((branch) => branch.name);
       if (!fetchFailed) {
         setGithubBranches(branchNames);
-        console.log("All available branches:", branchNames);
       } else {
         setGithubBranches([]);
       }

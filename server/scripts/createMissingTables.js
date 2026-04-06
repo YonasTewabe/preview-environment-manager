@@ -6,14 +6,14 @@ dotenv.config();
 
 const createMissingTables = async () => {
   try {
-    console.log('🔌 Testing database connection...');
+    console.warn('🔌 Testing database connection...');
     initAssociations();
     await testConnection();
-    console.log('✅ Database connection successful');
-    console.log('📦 Creating missing tables...');
+    console.warn('✅ Database connection successful');
+    console.warn('📦 Creating missing tables...');
     await Environment.sync({ alter: false });
-    console.log('  ✅ environments table ready');
-    console.log('\n✅ Done.');
+    console.warn('  ✅ environments table ready');
+    console.warn('\n✅ Done.');
     await sequelize.close();
     process.exit(0);
   } catch (error) {

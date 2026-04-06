@@ -514,6 +514,7 @@ router.get("/project/:projectId", async (req, res) => {
 // POST …/ — create web preview node
 router.post("/", async (req, res) => {
   try {
+    const bodyData = req.body?.data ?? {};
     const {
       type,
       repository_name,
@@ -524,7 +525,7 @@ router.post("/", async (req, res) => {
       project_id,
       created_by,
       branch_name,
-     } = req.body?.data;
+    } = bodyData;
 
     // Gate node creation until project has environments configured
     const project = await Project.findByPk(project_id);

@@ -229,7 +229,7 @@ router.post("/reset-password",
         });
       }
 
-      const { email, token, password, passwordConfirmation } = req.body;
+      const { email, token, password } = req.body;
 
       // Hash the provided token to compare with stored hash
       const hashedToken = crypto.createHash('sha256').update(token).digest('hex');

@@ -1,9 +1,6 @@
 import express from "express";
 import { Environment, Project, ProjectEnvProfile } from "../models/index.js";
-import {
-  getDefaultEnvProfile,
-  resolveProfileIdForProject,
-} from "../utils/resolveProjectEnvProfile.js";
+import { resolveProfileIdForProject } from "../utils/resolveProjectEnvProfile.js";
 
 const router = express.Router();
 

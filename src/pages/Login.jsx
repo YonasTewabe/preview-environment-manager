@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Form, Input, Button, Alert, Typography, Space, Checkbox } from 'antd';
-import { MailOutlined, LockOutlined, GoogleOutlined } from '@ant-design/icons';
+import { MailOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -9,7 +9,6 @@ const { Title, Text } = Typography;
 const Login = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
   const { login, isAuthenticated } = useAuth();
 
@@ -41,9 +40,7 @@ const Login = () => {
     }
   };
 
-  const onFinishFailed = (errorInfo) => {
-    console.log('Failed:', errorInfo);
-  };
+  const onFinishFailed = () => {};
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-blue-200 px-4 py-8 dark:bg-neutral-950">
@@ -140,7 +137,6 @@ const Login = () => {
             <div className="flex items-center justify-between mb-6">
               <Form.Item name="remember" valuePropName="checked" className="!mb-0">
                 <Checkbox 
-                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="text-black dark:text-white"
                 >
                   Remember for 30 days
@@ -174,7 +170,6 @@ const Login = () => {
                 icon={<GoogleOutlined className="text-red-500" />}
                 onClick={() => {
                   // Handle Google sign in
-                  console.log('Google sign in clicked');
                 }}
               >
                 Sign in with Google
@@ -188,10 +183,7 @@ const Login = () => {
               <Button 
                 type="link" 
                 className="!p-0 !h-auto text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-semibold"
-                onClick={() => {
-                  // Handle sign up
-                  console.log('Sign up clicked');
-                }}
+                onClick={() => {}}
               >
                 Sign up
               </Button>

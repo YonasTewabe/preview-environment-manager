@@ -2,8 +2,8 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Spin } from 'antd';
 
-const ProtectedRoute = ({ children, requiredRole = null }) => {
-  const { user, loading, isAuthenticated, hasRole } = useAuth();
+const ProtectedRoute = ({ children }) => {
+  const { loading, isAuthenticated } = useAuth();
 
   if (loading) {
     return (

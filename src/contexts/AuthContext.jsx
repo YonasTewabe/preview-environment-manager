@@ -45,7 +45,6 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (username, password) => {
-    console.log(username, password,"__username, password__");
     try {
       // Convert email to username if it's an email format
       const loginUsername = username.includes('@') ? username.split('@')[0] : username;

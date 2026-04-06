@@ -28,8 +28,7 @@ router.post('/create-from-deployment', async (req, res) => {
     }
 
     await urlConfigService.deleteUrlConfigsByWebNode(webNodeId);
-    
-    console.log(urlConfigs, "urlConfigs");
+
     const createdConfigs = await urlConfigService.createUrlConfigsFromDeployment(urlConfigs, webNodeId);
     
     res.json({

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Layout, Button, Space, Dropdown, Avatar, Tooltip } from "antd";
 import {
   MoonOutlined,
@@ -12,17 +12,7 @@ import {
 import Sidebar from "./Sidebar";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { useNavigate, useLocation } from "react-router-dom";
-
-function titleFromPath(pathname) {
-  if (pathname === "/" || pathname.startsWith("/dashboard")) return "Dashboard";
-  if (pathname.startsWith("/projects")) return "Projects";
-  if (pathname.startsWith("/environments")) return "Environment management";
-  if (pathname.startsWith("/users")) return "User management";
-  if (pathname.startsWith("/profile")) return "Profile";
-  if (pathname.startsWith("/home")) return "Home";
-  return "Preview builder";
-}
+import { useNavigate } from "react-router-dom";
 
 const { Header, Content } = Layout;
 
@@ -35,11 +25,6 @@ const MainLayout = ({ children }) => {
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const pageTitle = useMemo(
-    () => titleFromPath(location.pathname),
-    [location.pathname],
-  );
 
   const handleLogout = () => {
     logout();

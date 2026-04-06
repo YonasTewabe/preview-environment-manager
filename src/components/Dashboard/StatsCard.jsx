@@ -1,4 +1,4 @@
-import { Card, Statistic, Progress } from "antd";
+import { Card, Statistic } from "antd";
 import { ArrowUpOutlined, ArrowDownOutlined } from "@ant-design/icons";
 
 const StatsCard = ({
@@ -10,7 +10,6 @@ const StatsCard = ({
   trendValue,
   color = "blue",
   icon,
-  progress,
   loading = false,
 }) => {
   const colorMap = {

@@ -3,8 +3,6 @@ import { Alert, Typography } from "antd";
 const { Text, Link } = Typography;
 
 export default function BuildStatus({ status }) {
-  console.log("BuildStatus status:", status);
-
   if (!status) return null;
 
   // Show error alert separately

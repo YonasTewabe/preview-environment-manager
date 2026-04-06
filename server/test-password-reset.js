@@ -7,7 +7,7 @@ const TEST_EMAIL = 'test@example.com';
 // Test functions
 async function testForgotPassword() {
   try {
-    const response = await axios.post(`${BASE_URL}/auth/forgot-password`, {
+    await axios.post(`${BASE_URL}/auth/forgot-password`, {
       email: TEST_EMAIL
     });
     
@@ -26,13 +26,13 @@ async function testForgotPassword() {
 
 async function testResetPassword() {
   try {
-    const response = await axios.post(`${BASE_URL}/auth/reset-password`, {
+    await axios.post(`${BASE_URL}/auth/reset-password`, {
       email: TEST_EMAIL,
       token: 'invalid_token_for_testing',
       password: 'NewPassword123',
       passwordConfirmation: 'NewPassword123'
     });
-    
+
     return true;
   } catch (error) {
     if (error.response && error.response.status === 400) {
@@ -84,9 +84,6 @@ async function runTests() {
   results.push(await testResetPassword());
   
   results.push(await testRateLimiting());
-  
-  const passed = results.filter(Boolean).length;
-  const total = results.length;
 }
 
 // Run tests if this file is executed directly

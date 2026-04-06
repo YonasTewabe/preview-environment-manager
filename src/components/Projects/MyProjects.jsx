@@ -40,7 +40,6 @@ const MyProjects = () => {
     createProject,
     updateProject,
     deleteProject,
-    projectStats,
   } = useProjects();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -120,10 +119,6 @@ const MyProjects = () => {
     updatedAt: project.updated_at,
     memberCount: Math.floor(Math.random() * 10) + 1, // Placeholder for member count
   });
-
-  // Calculate stats
-  const totalProjects = projects.length;
-  const activeProjects = projects.length;
 
   return (
     <div className="space-y-6 text-black dark:text-white">

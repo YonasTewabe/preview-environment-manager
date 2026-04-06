@@ -57,7 +57,7 @@ class EmailService {
             await this.transporter.verify();
             this.verificationFailed = false;
             this.lastError = null;
-            console.log('✓ Email service initialized and verified successfully');
+            console.warn('✓ Email service initialized and verified successfully');
           } catch (verifyError) {
             this.verificationFailed = true;
             this.lastError = verifyError;

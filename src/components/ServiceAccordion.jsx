@@ -15,7 +15,6 @@ export default function ServiceAccordion({
   onRebuildBranch,
   getServiceTypeColor 
 }) {
-  console.log(backendServices,"backendServices");
   const [expandedBranches, setExpandedBranches] = useState({});
 
   const toggleBranchDetails = (branchId) => {

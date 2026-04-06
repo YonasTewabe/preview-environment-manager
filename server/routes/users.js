@@ -68,8 +68,7 @@ router.post("/", async (req, res) => {
     // Send welcome email asynchronously with password
     emailService.sendWelcomeEmail({...userResponse, password})
       .then((emailResult) => {
-        if (emailResult.success) {
-        } else {
+        if (!emailResult.success) {
           console.error(`Failed to send welcome email to ${userResponse.email}:`, emailResult.error);
         }
       })
