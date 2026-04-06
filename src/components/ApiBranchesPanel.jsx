@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { message, Form, Spin, Empty } from "antd";
 import {
   useDeleteBranch,
@@ -21,7 +21,7 @@ import {
 } from "../utils/invalidateQueries";
 
 export default function ApiBranchesPanel({
-  project: _project,
+  project,
   servicesArray,
   isLoading,
   githubBranches: githubBranchesProp,
@@ -53,6 +53,19 @@ export default function ApiBranchesPanel({
   const loadingGithubBranches =
     loadingGithubBranchesProp ?? githubHook.loadingGithubBranches;
   const { fetchGithubBranches } = githubHook;
+
+  useEffect(() => {
+    if (githubBranchesProp !== undefined) return;
+    if (!project?.id || !project?.repository_url) return;
+    const slug = project.repository_url.split("/").slice(4).join("/");
+    if (!slug) return;
+    void fetchGithubBranches(project.repository_url, slug);
+  }, [
+    githubBranchesProp,
+    project?.id,
+    project?.repository_url,
+    fetchGithubBranches,
+  ]);
 
   const invalidateBackendData = () => {
     const nodeKey = queryKeyPart(backendNodeId);

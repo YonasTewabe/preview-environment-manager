@@ -14,7 +14,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 const { Sider } = Layout;
 const { Text } = Typography;
 
-const Sidebar = ({ collapsed, onCollapse }) => {
+const Sidebar = ({ collapsed }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
@@ -66,8 +66,13 @@ const Sidebar = ({ collapsed, onCollapse }) => {
       trigger={null}
       collapsible
       collapsed={collapsed}
+      collapsedWidth={80}
       width={280}
-      className={`${isDark ? "dark:!bg-black" : "!bg-white"} border-r border-gray-200 flex flex-col`}
+      className={`flex flex-col border-r shadow-[1px_0_0_0_rgba(0,0,0,0.04)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.06)] ${
+        isDark
+          ? "!bg-zinc-950 border-zinc-800"
+          : "!bg-white border-gray-200/80"
+      }`}
       style={{
         overflow: "hidden",
         height: "100vh",
@@ -75,30 +80,61 @@ const Sidebar = ({ collapsed, onCollapse }) => {
         left: 0,
         top: 0,
         bottom: 0,
-        boxShadow: "none",
         display: "flex",
         flexDirection: "column",
       }}
     >
-      {/* Logo and Brand */}
-      <div className="px-6 py-5 border-b border-gray-100">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center justify-center">
+      <div
+        className={`border-b px-4 py-4 sm:px-5 sm:py-5 ${
+          isDark ? "border-zinc-800" : "border-gray-100"
+        }`}
+      >
+        <div
+          className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}
+        >
+          <div
+            className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
+              isDark
+                ? "bg-blue-500/15 ring-1 ring-blue-400/25"
+                : "bg-blue-50 ring-1 ring-blue-100"
+            }`}
+          >
             <FaCodeBranch
-              className="text-blue-600 dark:text-blue-400"
-              style={{ fontSize: "32px" }}
+              className={isDark ? "text-blue-400" : "text-blue-600"}
+              style={{ fontSize: "22px" }}
             />
           </div>
           {!collapsed && (
-            <Text className="text-base font-bold text-blue-600 dark:text-blue-400 tracking-wide uppercase">
-              PREVIEW BUILDER
-            </Text>
+            <div className="min-w-0">
+              <Text
+                className={`!mb-0 block text-[0.65rem] font-semibold uppercase leading-tight tracking-[0.12em] ${
+                  isDark ? "text-zinc-500" : "text-zinc-400"
+                }`}
+              >
+                Preview
+              </Text>
+              <Text
+                className={`!mb-0 block truncate text-base font-bold leading-tight tracking-tight ${
+                  isDark ? "text-zinc-100" : "text-zinc-900"
+                }`}
+              >
+                Builder
+              </Text>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Navigation Menu */}
-      <div className="py-4 px-3 flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto px-2 py-4 sm:px-3">
+        {!collapsed && (
+          <p
+            className={`mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider ${
+              isDark ? "text-zinc-500" : "text-zinc-400"
+            }`}
+          >
+            Navigate
+          </p>
+        )}
         <Menu
           mode="inline"
           selectedKeys={getSelectedKeys()}
@@ -107,22 +143,36 @@ const Sidebar = ({ collapsed, onCollapse }) => {
           style={{
             backgroundColor: "transparent",
           }}
-          theme="light"
+          theme={isDark ? "dark" : "light"}
         />
       </div>
 
-      {/* Logout Button */}
-      <div className="px-3 pb-4 border-t border-gray-200 dark:border-gray-700 pt-4">
+      <div
+        className={`border-t pb-4 pt-3 ${
+          collapsed
+            ? "flex justify-center px-0"
+            : "px-2 sm:px-3"
+        } ${isDark ? "border-zinc-800" : "border-gray-200/80"}`}
+      >
         <Button
           type="text"
-          icon={<LogoutOutlined />}
+          icon={<LogoutOutlined className="text-base" />}
           onClick={handleLogout}
-          className="w-full flex items-center justify-start h-11 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 font-medium"
-          style={{
-            color: isDark ? "#ffffff" : "#374151",
-          }}
+          className={
+            collapsed
+              ? `!inline-flex !size-11 !items-center !justify-center !gap-0 !p-0 rounded-lg font-medium transition-colors ${
+                  isDark
+                    ? "text-zinc-300 hover:!bg-zinc-800/80"
+                    : "text-zinc-700 hover:!bg-zinc-100"
+                }`
+              : `flex h-11 w-full items-center justify-start rounded-lg font-medium transition-colors ${
+                  isDark
+                    ? "text-zinc-300 hover:!bg-zinc-800/80"
+                    : "text-zinc-700 hover:!bg-zinc-100"
+                }`
+          }
         >
-          {!collapsed && <span className="ml-2">Logout</span>}
+          {!collapsed && <span className="ml-1">Log out</span>}
         </Button>
       </div>
 
@@ -153,12 +203,13 @@ const Sidebar = ({ collapsed, onCollapse }) => {
         }
 
         .sidebar-menu .ant-menu-item-selected {
-          background-color: #1890ff !important;
-          color: #ffffff !important;
+          background-color: rgba(37, 99, 235, 0.12) !important;
+          color: #1d4ed8 !important;
+          font-weight: 600 !important;
         }
 
         .sidebar-menu .ant-menu-item-selected .anticon {
-          color: #ffffff !important;
+          color: #2563eb !important;
         }
 
         .sidebar-menu .ant-menu-item-selected::after {
@@ -236,7 +287,16 @@ const Sidebar = ({ collapsed, onCollapse }) => {
         }
 
         .dark .sidebar-menu .ant-menu-inline .ant-menu-item-selected {
-          background-color: #1e3a8a !important;
+          background-color: rgba(59, 130, 246, 0.18) !important;
+          color: #93c5fd !important;
+        }
+
+        .dark .sidebar-menu .ant-menu-item-selected {
+          background-color: rgba(59, 130, 246, 0.18) !important;
+          color: #93c5fd !important;
+        }
+
+        .dark .sidebar-menu .ant-menu-item-selected .anticon {
           color: #60a5fa !important;
         }
 

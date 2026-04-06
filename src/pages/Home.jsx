@@ -61,26 +61,19 @@ export default function Home({ project }) {
 
   const { data: frontendNodes, isLoading: isLoadingFrontendNodes } =
     usePreviewNodesByProjectId(!isApi ? project?.id : undefined);
-  const {
-    data: backendAxios,
-    isLoading: isLoadingBackendNodes,
-  } = usePreviewServicesByProjectId(isApi ? project?.id : undefined);
+  const { data: backendAxios, isLoading: isLoadingBackendNodes } =
+    usePreviewServicesByProjectId(isApi ? project?.id : undefined);
 
-  const {
-    mutate: createFrontendNodes,
-    isPending: isCreatingFe,
-  } = useCreatePreviewNode();
-  const {
-    mutate: updateFrontendNodes,
-    isPending: isUpdatingFe,
-  } = useUpdatePreviewNode();
+  const { mutate: createFrontendNodes, isPending: isCreatingFe } =
+    useCreatePreviewNode();
+  const { mutate: updateFrontendNodes, isPending: isUpdatingFe } =
+    useUpdatePreviewNode();
   const deletePreviewNodeMutation = useDeletePreviewNode();
 
   const createBackendNode = useCreatePreviewService();
   const updateBackendNode = useUpdatePreviewService();
   const deleteBackendNode = useDeletePreviewService();
-  const isSavingBe =
-    createBackendNode.isPending || updateBackendNode.isPending;
+  const isSavingBe = createBackendNode.isPending || updateBackendNode.isPending;
 
   const backendRows = useMemo(() => {
     const raw = backendAxios?.data;
@@ -103,10 +96,9 @@ export default function Home({ project }) {
     : "";
 
   useEffect(() => {
-    if (project?.repository_url && repoUrl) {
-      fetchGithubBranches(project.repository_url, repoUrl);
-    }
-  }, [project?.repository_url, repoUrl]);
+    if (!project?.id || !project?.repository_url || !repoUrl) return;
+    void fetchGithubBranches(project.repository_url, repoUrl);
+  }, [project?.id, project?.repository_url, repoUrl, fetchGithubBranches]);
 
   const handleAddNode = () => {
     if (!projectDefaultEnvReady(project)) {
@@ -182,11 +174,7 @@ export default function Home({ project }) {
         setDeletingNodeId(null);
       }
     },
-    [
-      isApi,
-      deleteBackendNode,
-      deletePreviewNodeMutation,
-    ],
+    [isApi, deleteBackendNode, deletePreviewNodeMutation],
   );
 
   const handleModalOk = () => {
@@ -204,7 +192,10 @@ export default function Home({ project }) {
         }
         const repoSlug = project.repository_url.split("/").slice(4).join("/");
         const selfId = editingNode?.id;
-        const lc = (s) => String(s ?? "").trim().toLowerCase();
+        const lc = (s) =>
+          String(s ?? "")
+            .trim()
+            .toLowerCase();
         const dupName = backendRows.find(
           (s) =>
             lc(s.service_name) === lc(name) &&
@@ -261,16 +252,17 @@ export default function Home({ project }) {
         ? frontendNodes.data
         : [];
       const selfWebId = editingNode?.id;
-      const lcw = (s) => String(s ?? "").trim().toLowerCase();
+      const lcw = (s) =>
+        String(s ?? "")
+          .trim()
+          .toLowerCase();
       const dupWebName = webRows.find(
         (n) =>
           lcw(n.service_name) === lcw(name) &&
           (!selfWebId || Number(n.id) !== Number(selfWebId)),
       );
       if (dupWebName) {
-        message.error(
-          `Service name "${name}" already exists in this project.`,
-        );
+        message.error(`Service name "${name}" already exists in this project.`);
         return;
       }
       const dupWebBranch = webRows.find(
@@ -317,8 +309,9 @@ export default function Home({ project }) {
             repository_name: project.repository_url,
             repo_url: project.repository_url,
             env_name: project.env_name,
-            project_env_profile_id: project.env_profiles?.find((p) => p.is_default)
-              ?.id,
+            project_env_profile_id: project.env_profiles?.find(
+              (p) => p.is_default,
+            )?.id,
             description: null,
             service_name: name,
             project_id: project.id,
@@ -371,7 +364,7 @@ export default function Home({ project }) {
       <Content style={{ padding: "0px" }}>
         <Card
           bordered={false}
-          className="dark:bg-black dark:border-gray-800"
+          className="border border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900"
           title={
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-base font-semibold">Nodes</span>
@@ -398,9 +391,7 @@ export default function Home({ project }) {
         editingItem={editingNode}
         githubBranches={githubBranches}
         loadingGithubBranches={loadingGithubBranches}
-        submitLoading={
-          isApi ? isSavingBe : isCreatingFe || isUpdatingFe
-        }
+        submitLoading={isApi ? isSavingBe : isCreatingFe || isUpdatingFe}
       />
     </div>
   );

@@ -1,74 +1,115 @@
-import { useState } from 'react';
-import { 
-  Table, 
-  Input, 
-  Button, 
-  Space, 
-  Tag, 
-  Popconfirm, 
+import { useState, useMemo, useEffect } from "react";
+import {
+  Table,
+  Input,
+  Button,
+  Space,
+  Tag,
+  Popconfirm,
   Card,
   Row,
   Col,
-  Typography,
-  Spin
-} from 'antd';
-import { 
-  PlusOutlined, 
-  EditOutlined, 
-  DeleteOutlined, 
-  SearchOutlined,
+} from "antd";
+import {
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
   UserOutlined,
   ReloadOutlined,
-  MailOutlined
-} from '@ant-design/icons';
-import UserFormModal from '../components/UserFormModal';
-import { 
-  useUsers, 
-  useCreateUser, 
-  useUpdateUser, 
+  MailOutlined,
+  TeamOutlined,
+  CheckCircleOutlined,
+} from "@ant-design/icons";
+import StatsCard from "../components/Dashboard/StatsCard";
+import UserFormModal from "../components/UserFormModal";
+import {
+  useUsers,
+  useCreateUser,
+  useUpdateUser,
   useDeleteUser,
-  useResendWelcomeEmail 
-} from '../hooks/useUsers';
+  useResendWelcomeEmail,
+} from "../hooks/useUsers";
 
-const { Title } = Typography;
 const { Search } = Input;
+
+function formatEnumLabel(value) {
+  if (value == null || value === "") return "—";
+  const s = String(value);
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+function statusTagColor(status) {
+  const k = String(status ?? "").toLowerCase();
+  if (k === "active") return "success";
+  if (k === "inactive") return "default";
+  if (k === "suspended") return "warning";
+  return "default";
+}
 
 const UserManagement = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [searchText, setSearchText] = useState('');
+  const [searchText, setSearchText] = useState("");
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
   });
 
   // React Query hooks
-  const { 
-    data: usersData, 
-    isLoading, 
-    isError, 
-    error, 
-    refetch 
-  } = useUsers({
-    page: pagination.current,
-    pageSize: pagination.pageSize,
-    search: searchText
-  });
+  const { data: usersData, isLoading, isError, error, refetch } = useUsers();
 
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
   const resendEmailMutation = useResendWelcomeEmail();
 
-  // Extract users and pagination info from API response
-  const users = usersData || [];
-  const total = usersData?.total || 0;
-  const loading = isLoading || createUserMutation.isPending || updateUserMutation.isPending || deleteUserMutation.isPending;
+  const allUsers = Array.isArray(usersData) ? usersData : [];
+  const filteredUsers = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    if (!q) return allUsers;
+    return allUsers.filter((u) => {
+      const name = `${u.first_name ?? ""} ${u.last_name ?? ""}`.toLowerCase();
+      return (
+        name.includes(q) ||
+        (u.username && String(u.username).toLowerCase().includes(q)) ||
+        (u.email && String(u.email).toLowerCase().includes(q))
+      );
+    });
+  }, [allUsers, searchText]);
 
-  // Handle search functionality
-  const handleSearch = (value) => {
+  const total = filteredUsers.length;
+  const tableRows = useMemo(() => {
+    const start = (pagination.current - 1) * pagination.pageSize;
+    return filteredUsers.slice(start, start + pagination.pageSize);
+  }, [filteredUsers, pagination.current, pagination.pageSize]);
+
+  const loading =
+    isLoading ||
+    createUserMutation.isPending ||
+    updateUserMutation.isPending ||
+    deleteUserMutation.isPending;
+
+  const totalUsers = allUsers.length;
+  const activeUsersCount = useMemo(
+    () =>
+      allUsers.filter((u) => String(u.status ?? "").toLowerCase() === "active")
+        .length,
+    [allUsers],
+  );
+
+  useEffect(() => {
+    const pages = Math.max(
+      1,
+      Math.ceil(filteredUsers.length / pagination.pageSize) || 1,
+    );
+    if (pagination.current > pages) {
+      setPagination((p) => ({ ...p, current: pages }));
+    }
+  }, [filteredUsers.length, pagination.pageSize, pagination.current]);
+
+  const applySearch = (value) => {
     setSearchText(value);
-    setPagination(prev => ({ ...prev, current: 1 })); // Reset to first page on search
+    setPagination((prev) => ({ ...prev, current: 1 }));
   };
 
   // Handle create new user
@@ -93,32 +134,32 @@ const UserManagement = () => {
     resendEmailMutation.mutate(userId);
   };
 
-  // Handle form submission (create/update)
+  // Handle form submission (create/update) — role is not managed in UI; keep existing on edit
   const handleFormSubmit = (values) => {
+    const payload =
+      editingUser != null ? { ...values, role: editingUser.role } : values;
     if (editingUser) {
-      // Update existing user
       updateUserMutation.mutate(
-        { id: editingUser.id, ...values },
+        { id: editingUser.id, ...payload },
         {
           onSuccess: () => {
             setModalVisible(false);
             setEditingUser(null);
-          }
-        }
+          },
+        },
       );
     } else {
-      // Create new user
-      createUserMutation.mutate(values, {
+      createUserMutation.mutate(payload, {
         onSuccess: () => {
           setModalVisible(false);
           setEditingUser(null);
-        }
+        },
       });
     }
   };
 
   // Handle pagination change
-  const handleTableChange = (paginationInfo, filters, sorter) => {
+  const handleTableChange = (paginationInfo) => {
     setPagination({
       current: paginationInfo.current,
       pageSize: paginationInfo.pageSize,
@@ -133,9 +174,9 @@ const UserManagement = () => {
   // Table columns configuration
   const columns = [
     {
-      title: 'Username',
-      dataIndex: 'username',
-      key: 'username',
+      title: "Username",
+      dataIndex: "username",
+      key: "username",
       sorter: (a, b) => a.username.localeCompare(b.username),
       render: (text) => (
         <div className="flex items-center">
@@ -145,9 +186,12 @@ const UserManagement = () => {
       ),
     },
     {
-      title: 'Full Name',
-      key: 'fullName',
-      sorter: (a, b) => `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`),
+      title: "Full Name",
+      key: "fullName",
+      sorter: (a, b) =>
+        `${a.first_name} ${a.last_name}`.localeCompare(
+          `${b.first_name} ${b.last_name}`,
+        ),
       render: (_, record) => (
         <span className="font-medium">
           {`${record.first_name} ${record.last_name}`}
@@ -155,50 +199,33 @@ const UserManagement = () => {
       ),
     },
     {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
+      title: "Email",
+      dataIndex: "email",
+      key: "email",
       sorter: (a, b) => a.email.localeCompare(b.email),
       render: (email) => (
         <span className="text-blue-600 dark:text-blue-400">{email}</span>
       ),
     },
     {
-      title: 'Role',
-      dataIndex: 'role',
-      key: 'role',
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
       filters: [
-        { text: 'Admin', value: 'Admin' },
-        { text: 'Developer', value: 'Developer' },
-        { text: 'Viewer', value: 'Viewer' },
+        { text: "Active", value: "active" },
+        { text: "Inactive", value: "inactive" },
+        { text: "Suspended", value: "suspended" },
       ],
-      onFilter: (value, record) => record.role === value,
-      render: (role) => {
-        let color = 'blue';
-        if (role === 'Admin') color = 'red';
-        if (role === 'Developer') color = 'orange';
-        if (role === 'Viewer') color = 'green';
-        return <Tag color={color}>{role}</Tag>;
-      },
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      filters: [
-        { text: 'Active', value: 'Active' },
-        { text: 'Inactive', value: 'Inactive' },
-      ],
-      onFilter: (value, record) => record.status === value,
+      onFilter: (value, record) =>
+        String(record.status ?? "").toLowerCase() ===
+        String(value).toLowerCase(),
       render: (status) => (
-        <Tag color={status === 'Active' ? 'green' : 'red'}>
-          {status}
-        </Tag>
+        <Tag color={statusTagColor(status)}>{formatEnumLabel(status)}</Tag>
       ),
     },
     {
-      title: 'Actions',
-      key: 'actions',
+      title: "Actions",
+      key: "actions",
       width: 160,
       render: (_, record) => (
         <Space size="small">
@@ -241,118 +268,106 @@ const UserManagement = () => {
   ];
 
   return (
-    <div className="p-6 bg-white dark:bg-black min-h-screen text-black dark:text-white">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <Title level={2} className="!mb-2 !text-black dark:!text-white">
+    <div className="space-y-6 text-black dark:text-white">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h2 className="mb-0 text-3xl font-bold text-blue-900 dark:text-blue-400">
             User Management
-          </Title>
-          <p className="text-gray-700 dark:text-gray-300">
-            Manage your application users, roles, and permissions
+          </h2>
+          <p className="font-bold text-gray-700 dark:text-gray-300">
+            Manage your application users
           </p>
         </div>
-
-        {/* Error Display */}
-        {isError && (
-          <Card className="mb-6 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
-            <div className="text-red-600 dark:text-red-400">
-              <p className="font-medium">Error loading users:</p>
-              <p className="text-sm">{error?.message || 'An unexpected error occurred'}</p>
-              <Button 
-                type="primary" 
-                danger 
-                size="small" 
-                onClick={handleRefresh}
-                className="mt-2"
-              >
-                Retry
-              </Button>
-            </div>
-          </Card>
-        )}
-
-        {/* Controls */}
-        <Card className="mb-6 shadow-sm dark:bg-black dark:border-gray-800">
-          <Row gutter={[16, 16]} align="middle">
-            <Col xs={24} sm={12} md={8}>
-              <Search
-                placeholder="Search by username, name, or email"
-                allowClear
-                enterButton={<SearchOutlined />}
-                size="large"
-                onSearch={handleSearch}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="w-full"
-                loading={isLoading}
-              />
-            </Col>
-            <Col xs={24} sm={12} md={16} className="text-right">
-              <Space>
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={handleRefresh}
-                  size="large"
-                  loading={isLoading}
-                >
-                  Refresh
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={handleCreateUser}
-                  size="large"
-                  className="bg-blue-600 hover:bg-blue-700 border-blue-600 hover:border-blue-700"
-                >
-                  Create New User
-                </Button>
-              </Space>
-            </Col>
-          </Row>
-        </Card>
-
-        {/* Users Table */}
-        <Card className="shadow-sm dark:bg-black dark:border-gray-800">
-          {isLoading && !users.length ? (
-            <div className="flex justify-center items-center py-20">
-              <Spin size="large" />
-            </div>
-          ) : (
-            <Table
-              columns={columns}
-              dataSource={users}
-              rowKey="id"
-              loading={loading}
-              onChange={handleTableChange}
-              pagination={{
-                current: pagination.current,
-                pageSize: pagination.pageSize,
-                total: total,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                showTotal: (total, range) =>
-                  `${range[0]}-${range[1]} of ${total} users`,
-                className: 'mt-4',
-                pageSizeOptions: ['10', '20', '50', '100'],
-              }}
-              scroll={{ x: 800 }}
-              className="ant-table-responsive"
-            />
-          )}
-        </Card>
-
-        {/* User Form Modal */}
-        <UserFormModal
-          visible={modalVisible}
-          onCancel={() => {
-            setModalVisible(false);
-            setEditingUser(null);
-          }}
-          onSubmit={handleFormSubmit}
-          initialValues={editingUser}
-          loading={createUserMutation.isPending || updateUserMutation.isPending}
-        />
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={handleRefresh}
+            size="large"
+            loading={isLoading}
+          >
+            Refresh
+          </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={handleCreateUser}
+            size="large"
+            className="!border-blue-600 !bg-blue-600 hover:!bg-blue-700"
+          >
+            Create New User
+          </Button>
+        </div>
       </div>
+
+      {isError && (
+        <Card className="border border-red-200 bg-red-50 dark:border-red-800/80 dark:bg-red-950/40">
+          <div className="text-red-600 dark:text-red-400">
+            <p className="font-medium">Error loading users</p>
+            <p className="text-sm">
+              {error?.message || "An unexpected error occurred"}
+            </p>
+            <Button
+              type="primary"
+              danger
+              size="small"
+              onClick={handleRefresh}
+              className="mt-2"
+            >
+              Retry
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      <Card className="mb-4 border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div className="flex w-full flex-1 gap-2 sm:w-auto">
+            <Search
+              placeholder="Search by username, name, or email"
+              allowClear
+              size="large"
+              className="flex-1 max-w-xl"
+              value={searchText}
+              onChange={(e) => applySearch(e.target.value)}
+              onSearch={applySearch}
+            />
+          </div>
+        </div>
+
+        <Table
+          className="mt-4 ant-table-responsive"
+          columns={columns}
+          dataSource={tableRows}
+          rowKey="id"
+          loading={loading}
+          locale={{
+            emptyText: "No users match your search.",
+          }}
+          onChange={handleTableChange}
+          pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: total,
+            showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (t, range) => `${range[0]}-${range[1]} of ${t} users`,
+            className: "mt-4",
+            pageSizeOptions: ["10", "20", "50", "100"],
+          }}
+          scroll={{ x: 800 }}
+        />
+      </Card>
+
+      <UserFormModal
+        visible={modalVisible}
+        onCancel={() => {
+          setModalVisible(false);
+          setEditingUser(null);
+        }}
+        onSubmit={handleFormSubmit}
+        initialValues={editingUser}
+        loading={createUserMutation.isPending || updateUserMutation.isPending}
+      />
     </div>
   );
 };

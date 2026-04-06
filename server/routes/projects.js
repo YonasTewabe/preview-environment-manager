@@ -1,5 +1,6 @@
 import express from "express";
 import { Op } from "sequelize";
+import { sequelize } from "../config/database.js";
 import { Project, User, Environment, ProjectEnvProfile, Node } from "../models/index.js";
 import {
   slugifyEnvProfileLabel,
@@ -162,6 +163,33 @@ const sanitizeProject = (projectInstanceOrJson) => {
   return json;
 };
 
+/** Non-deleted preview nodes per project id (for list/detail payloads). */
+async function getNodeCountsByProjectIds(projectIds) {
+  const ids = [
+    ...new Set(
+      (projectIds || [])
+        .map((id) => Number(id))
+        .filter((n) => Number.isFinite(n)),
+    ),
+  ];
+  if (ids.length === 0) return {};
+  const rows = await Node.findAll({
+    attributes: [
+      "project_id",
+      [sequelize.fn("COUNT", sequelize.col("Node.id")), "cnt"],
+    ],
+    where: { project_id: { [Op.in]: ids }, is_deleted: false },
+    group: ["project_id"],
+    raw: true,
+  });
+  /** @type {Record<number, number>} */
+  const map = {};
+  for (const r of rows) {
+    map[Number(r.project_id)] = Number(r.cnt) || 0;
+  }
+  return map;
+}
+
 const projectDetailIncludes = [
   {
     model: User,
@@ -198,7 +226,13 @@ router.get("/", async (req, res) => {
       include: projectDetailIncludes,
       order: [["created_at", "DESC"]],
     });
-    res.json(projects.map(sanitizeProject));
+    const countMap = await getNodeCountsByProjectIds(projects.map((p) => p.id));
+    res.json(
+      projects.map((p) => ({
+        ...sanitizeProject(p),
+        nodes_count: countMap[p.id] ?? 0,
+      })),
+    );
   } catch (error) {
     // Backward-compatible fallback when DB schema hasn't been updated yet.
     if (isUnknownColumnError(error, 'Project.env_name')) {
@@ -214,7 +248,15 @@ router.get("/", async (req, res) => {
           ],
           order: [['created_at', 'DESC']],
         });
-        return res.json(projects.map(sanitizeProject));
+        const countMapFb = await getNodeCountsByProjectIds(
+          projects.map((p) => p.id),
+        );
+        return res.json(
+          projects.map((p) => ({
+            ...sanitizeProject(p),
+            nodes_count: countMapFb[p.id] ?? 0,
+          })),
+        );
       } catch (fallbackError) {
         console.error("Error fetching projects (fallback):", fallbackError);
       }
@@ -235,8 +277,12 @@ router.get("/:id", async (req, res) => {
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
-    
-    res.json(sanitizeProject(project));
+
+    const countMapOne = await getNodeCountsByProjectIds([project.id]);
+    res.json({
+      ...sanitizeProject(project),
+      nodes_count: countMapOne[project.id] ?? 0,
+    });
   } catch (error) {
     if (isUnknownColumnError(error, 'Project.env_name') || isUnknownColumnError(error, 'env_name')) {
       try {
@@ -255,7 +301,11 @@ router.get("/:id", async (req, res) => {
           return res.status(404).json({ error: "Project not found" });
         }
 
-        return res.json(sanitizeProject(project));
+        const countMapFb = await getNodeCountsByProjectIds([project.id]);
+        return res.json({
+          ...sanitizeProject(project),
+          nodes_count: countMapFb[project.id] ?? 0,
+        });
       } catch (fallbackError) {
         console.error("Error fetching project (fallback):", fallbackError);
       }
@@ -322,7 +372,10 @@ router.post("/", async (req, res) => {
     const createdFull = await Project.findByPk(project.id, {
       include: projectDetailIncludes,
     });
-    res.status(201).json(sanitizeProject(createdFull));
+    res.status(201).json({
+      ...sanitizeProject(createdFull),
+      nodes_count: 0,
+    });
   } catch (error) {
     console.error("Error creating project:", error);
     const mapped = mapUniqueConstraintError(error);
@@ -409,7 +462,11 @@ router.put("/:id", async (req, res) => {
     const updatedFull = await Project.findByPk(project.id, {
       include: projectDetailIncludes,
     });
-    res.json(sanitizeProject(updatedFull));
+    const countMapPut = await getNodeCountsByProjectIds([project.id]);
+    res.json({
+      ...sanitizeProject(updatedFull),
+      nodes_count: countMapPut[project.id] ?? 0,
+    });
   } catch (error) {
     console.error("Error updating project:", error);
     const mapped = mapUniqueConstraintError(error);
@@ -525,7 +582,11 @@ router.put("/:id/environments", async (req, res) => {
       include: projectDetailIncludes,
     });
 
-    res.json(sanitizeProject(updatedProject));
+    const countMapEnv = await getNodeCountsByProjectIds([project.id]);
+    res.json({
+      ...sanitizeProject(updatedProject),
+      nodes_count: countMapEnv[project.id] ?? 0,
+    });
   } catch (error) {
     console.error("Error updating project environments:", error);
     res.status(500).json({ error: "Failed to update project environments" });

@@ -56,7 +56,7 @@ router.post("/", async (req, res) => {
       email,
       first_name,
       last_name,
-      role: role || 'viewer', // Default role
+      role: role || "user",
       status: 'active', // Default status for new users
       password: hashedPassword,
     });

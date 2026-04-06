@@ -1,25 +1,21 @@
 @import "tailwindcss";
 
-/* Custom animations */
+/*
+ * Tailwind v4 defaults dark: to prefers-color-scheme, which ignores the app toggle.
+ * ThemeContext adds/removes .dark on <html> — align utilities with that only.
+ * @see https://tailwindcss.com/docs/dark-mode
+ */
+@custom-variant dark (&:where(.dark, .dark *));
 
-/* Global dark mode styles — match main shell so short pages don’t show a mismatched strip */
+/* Match main shell so short pages don’t show a mismatched strip */
 html {
   @apply min-h-full;
 }
 
 body {
-  @apply min-h-full bg-[#f5f5f5] text-black dark:bg-neutral-950 dark:text-white;
+  @apply min-h-full bg-[#f5f5f5] text-zinc-900 dark:bg-neutral-950 dark:text-zinc-50;
 }
 
 #root {
   @apply min-h-full;
-}
-
-/* Ensure proper contrast for all text in dark mode */
-.dark {
-  color: white;
-}
-
-.dark * {
-  color: inherit;
 }

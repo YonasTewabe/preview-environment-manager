@@ -68,7 +68,9 @@ const MyProjects = () => {
   const handleEditProject = (projectFromCard) => {
     const id = projectFromCard?.id;
     const full =
-      id != null ? projects.find((p) => p.id === id) ?? projectFromCard : projectFromCard;
+      id != null
+        ? (projects.find((p) => p.id === id) ?? projectFromCard)
+        : projectFromCard;
     setEditingProject(full);
     setIsModalVisible(true);
   };
@@ -131,7 +133,7 @@ const MyProjects = () => {
           <h2 className="text-3xl font-bold text-blue-900 dark:text-blue-400 mb-0">
             My Projects
           </h2>
-          <p className="text-gray-700 dark:text-gray-300">
+          <p className="font-bold text-gray-700 dark:text-gray-300">
             Manage and monitor all your development projects
           </p>
         </div>
@@ -148,32 +150,7 @@ const MyProjects = () => {
         </div>
       </div>
 
-      {/* Main Section Title */}
-
-      {/* Statistics Cards */}
-      <Row gutter={[24, 24]} className="mb-6">
-        <Col xs={24} sm={12} lg={6}>
-          <StatsCard
-            title="Total Projects"
-            value={totalProjects}
-            icon={<DatabaseOutlined />}
-            color="blue"
-            loading={loading}
-          />
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <StatsCard
-            title="Active Projects"
-            value={activeProjects}
-            icon={<CheckSquareOutlined />}
-            color="blue"
-            loading={loading}
-          />
-        </Col>
-      </Row>
-
-      {/* Search and Filter Bar */}
-      <Card className="shadow-sm mb-4 dark:bg-black dark:border-gray-800">
+      <Card className="mb-4 border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="flex flex-1 gap-2 w-full sm:w-auto">
             <Search
@@ -188,13 +165,12 @@ const MyProjects = () => {
           </div>
         </div>
 
-        {/* Projects Grid */}
         {loading ? (
           <div className="flex justify-center items-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
         ) : filteredProjects.length === 0 ? (
-          <Card className="shadow-sm dark:bg-black dark:border-gray-800">
+          <Card className="border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
             <Empty description="No projects found" className="py-12" />
           </Card>
         ) : (

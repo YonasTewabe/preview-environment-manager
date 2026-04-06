@@ -46,10 +46,10 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-blue-200 dark:bg-black flex items-center justify-center px-4 py-8">
+    <div className="flex min-h-screen items-center justify-center bg-blue-200 px-4 py-8 dark:bg-neutral-950">
       <div className="w-full max-w-md">
         {/* Login Card */}
-        <div className="bg-white dark:bg-black border dark:border-gray-800 rounded-2xl shadow-xl p-8">
+        <div className="rounded-2xl border border-zinc-200/80 bg-white p-8 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
           {/* Logo/Brand */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
@@ -63,7 +63,7 @@ const Login = () => {
             <Title level={2} className="!mb-2 !text-black dark:!text-white font-bold">
               Welcome back
             </Title>
-            <Text className="text-gray-600 dark:text-gray-300">
+            <Text className="font-bold text-gray-600 dark:text-gray-300">
               Please enter your details
             </Text>
           </div>

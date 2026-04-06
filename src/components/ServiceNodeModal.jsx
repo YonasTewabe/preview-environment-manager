@@ -24,7 +24,12 @@ export default function ServiceNodeModal({
       <Button type="default" onClick={onCancel}>
         Cancel
       </Button>
-      <Button type="primary" onClick={onSubmit} loading={submitLoading}>
+      <Button
+        type="primary"
+        onClick={onSubmit}
+        loading={submitLoading}
+        disabled={!isEdit && loadingGithubBranches}
+      >
         {isEdit ? "Update" : "Add"} node
       </Button>
     </div>
@@ -73,9 +78,13 @@ export default function ServiceNodeModal({
         >
           <Select
             size="large"
-            placeholder="Select a branch"
+            placeholder={
+              loadingGithubBranches
+                ? "Loading branches…"
+                : "Select a branch"
+            }
             loading={loadingGithubBranches}
-            disabled={isEdit}
+            disabled={isEdit || loadingGithubBranches}
             showSearch
             filterOption={(input, option) => {
               const optionText =

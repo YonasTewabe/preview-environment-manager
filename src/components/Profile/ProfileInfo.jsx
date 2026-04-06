@@ -143,17 +143,19 @@ const ProfileInfo = () => {
   // Handle loading and error states
   if (userLoading && !currentUser) {
     return (
-      <div className="max-w-2xl mx-auto text-center py-8">
+      <div className="mx-auto max-w-2xl py-8 text-center">
         <Spin size="large" />
-        <p className="mt-4 text-gray-600">Loading profile information...</p>
+        <p className="mt-4 text-zinc-600 dark:text-zinc-400">
+          Loading profile information...
+        </p>
       </div>
     );
   }
 
   if (isError && !currentUser) {
     return (
-      <div className="max-w-2xl mx-auto text-center py-8">
-        <p className="text-red-600">
+      <div className="mx-auto max-w-2xl py-8 text-center">
+        <p className="text-red-600 dark:text-red-400">
           Error loading profile: {error?.message || 'Unknown error'}
         </p>
         <Button 
@@ -169,14 +171,14 @@ const ProfileInfo = () => {
 
   if (!displayUser) {
     return (
-      <div className="max-w-2xl mx-auto text-center py-8">
-        <p className="text-gray-600">No user data available</p>
+      <div className="mx-auto max-w-2xl py-8 text-center">
+        <p className="text-zinc-600 dark:text-zinc-400">No user data available</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="mx-auto max-w-2xl px-4 pb-8 pt-4 sm:px-6">
       <Form
         form={form}
         layout="vertical"
@@ -184,7 +186,7 @@ const ProfileInfo = () => {
         className="space-y-6"
       >
         {/* Avatar Section */}
-        <Card className="mb-6">
+        <Card className="mb-6 border-zinc-200/80 shadow-sm dark:border-zinc-800 dark:!bg-zinc-950">
           <div className="text-center">
             <div className="mb-4">
               <div className="relative inline-block">
@@ -192,7 +194,7 @@ const ProfileInfo = () => {
                   size={120}
                   src={avatarUrl || userData?.avatar}
                   icon={!avatarUrl && !userData?.avatar ? <UserOutlined /> : null}
-                  className="border-4 border-white shadow-lg"
+                  className="border-4 border-zinc-200 shadow-lg dark:border-zinc-700"
                 />
                 <Upload
                   name="avatar"
@@ -212,21 +214,26 @@ const ProfileInfo = () => {
                     shape="circle"
                     icon={<CameraOutlined />}
                     size="large"
-                    className="bg-purple-600 hover:bg-purple-700 border-purple-600 hover:border-purple-700 text-white"
+                    className="border-blue-600 bg-blue-600 text-white hover:border-blue-700 hover:bg-blue-700"
                     loading={uploading}
                   />
                 </Upload>
               </div>
             </div>
-            <h3 className="text-lg font-semibold text-gray-800">
+            <h3 className="text-lg font-semibold capitalize text-zinc-900 dark:text-zinc-100">
               {displayUser.first_name} {displayUser.last_name}
             </h3>
-            <p className="text-gray-500">{displayUser.role}</p>
+            <p className="capitalize text-zinc-600 dark:text-zinc-400">
+              {displayUser.role}
+            </p>
           </div>
         </Card>
 
         {/* Personal Information */}
-        <Card title="Personal Information" className="mb-6">
+        <Card
+          title="Personal Information"
+          className="mb-6 border-zinc-200/80 shadow-sm dark:border-zinc-800 dark:!bg-zinc-950 [&_.ant-card-head]:border-zinc-200/80 dark:[&_.ant-card-head]:border-zinc-800 dark:[&_.ant-card-head]:!bg-zinc-900 [&_.ant-card-head-title]:text-zinc-900 dark:[&_.ant-card-head-title]:text-zinc-100"
+        >
           <Row gutter={[24, 16]}>
             <Col xs={24} sm={12}>
               <Form.Item
@@ -337,14 +344,14 @@ const ProfileInfo = () => {
         </Card>
 
         {/* Action Buttons */}
-        <Card className="text-center">
+        <Card className="border-zinc-200/80 text-center shadow-sm dark:border-zinc-800 dark:!bg-zinc-950">
           <Space size="large">
             <Button
               type="default"
               icon={<UndoOutlined />}
               size="large"
               onClick={handleReset}
-              className="min-w-[120px]"
+              className="min-w-[120px] dark:!border-zinc-600 dark:!bg-zinc-800 dark:!text-zinc-100 dark:hover:!border-zinc-500 dark:hover:!bg-zinc-700"
             >
               Reset
             </Button>
@@ -354,7 +361,7 @@ const ProfileInfo = () => {
               icon={<SaveOutlined />}
               size="large"
               loading={updateUserMutation.isPending}
-              className="min-w-[120px] bg-purple-600 hover:bg-purple-700 border-purple-600 hover:border-purple-700"
+              className="min-w-[120px] border-blue-600 bg-blue-600 hover:border-blue-700 hover:bg-blue-700"
             >
               Save Changes
             </Button>

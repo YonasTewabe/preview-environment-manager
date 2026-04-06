@@ -53,8 +53,8 @@ const ResetPassword = () => {
 
   if (!isValidToken) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black px-4">
-        <Card className="w-full max-w-md dark:bg-black dark:border-gray-800">
+      <div className="flex min-h-screen items-center justify-center bg-[#f5f5f5] px-4 dark:bg-neutral-950">
+        <Card className="w-full max-w-md border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900">
           <div className="text-center">
             <div className="mx-auto w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-4">
               <LockOpenIcon className="text-2xl text-red-600 dark:text-red-400" />
@@ -62,7 +62,7 @@ const ResetPassword = () => {
             <Title level={3} className="mb-2 !text-black dark:!text-white">
               Invalid Reset Link
             </Title>
-            <Text className="text-gray-700 dark:text-gray-300 mb-6 block">
+            <Text className="mb-6 block font-bold text-gray-700 dark:text-gray-300">
               The password reset link is invalid or has expired. Please request a new password reset.
             </Text>
             <Link to="/forgot-password">
@@ -77,8 +77,8 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black px-4">
-      <Card className="w-full max-w-md dark:bg-black dark:border-gray-800">
+    <div className="flex min-h-screen items-center justify-center bg-[#f5f5f5] px-4 dark:bg-neutral-950">
+      <Card className="w-full max-w-md border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div className="text-center mb-6">
           <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
             <LockIcon className="text-2xl text-blue-600 dark:text-blue-400" />
@@ -86,7 +86,7 @@ const ResetPassword = () => {
           <Title level={3} className="mb-2 !text-black dark:!text-white">
             Reset Your Password
           </Title>
-          <Text className="text-gray-700 dark:text-gray-300">
+          <Text className="font-bold text-gray-700 dark:text-gray-300">
             Enter your new password below.
           </Text>
         </div>

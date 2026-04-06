@@ -8,8 +8,8 @@ export default function BranchModal({
   onOk, 
   onCancel, 
   form, 
-  githubBranches, 
-  loadingGithubBranches 
+  githubBranches = [], 
+  loadingGithubBranches = false,
 }) {
   return (
     <Modal
@@ -18,6 +18,7 @@ export default function BranchModal({
       onOk={onOk}
       onCancel={onCancel}
       width={600}
+      okButtonProps={{ disabled: loadingGithubBranches }}
     >
       <Form
         form={form}
@@ -29,8 +30,13 @@ export default function BranchModal({
           rules={[{ required: true, message: "Please select a branch" }]}
         >
           <Select
-            placeholder="Select a branch from GitHub"
+            placeholder={
+              loadingGithubBranches
+                ? "Loading branches…"
+                : "Select a branch from GitHub"
+            }
             loading={loadingGithubBranches}
+            disabled={loadingGithubBranches}
             showSearch
             filterOption={(input, option) => {
               const optionText = typeof option.children === 'string' 

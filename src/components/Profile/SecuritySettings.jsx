@@ -1,32 +1,17 @@
-import { useState } from 'react';
 import {
   Form,
   Input,
   Button,
   Card,
   message,
-  Space,
-  Switch,
-  Row,
-  Col,
-  Alert,
-  Divider,
-  Typography
 } from 'antd';
 import {
   LockOutlined,
-  SafetyCertificateOutlined,
-  MobileOutlined,
-  MailOutlined,
   EyeInvisibleOutlined,
   EyeTwoTone,
-  CheckCircleOutlined,
-  CloseCircleOutlined
 } from '@ant-design/icons';
 import { useChangePassword } from '../../hooks/useUsers';
 import { useAuth } from '../../contexts/AuthContext';
-
-const { Title, Text } = Typography;
 
 const SecuritySettings = () => {
   const [passwordForm] = Form.useForm();
@@ -61,60 +46,13 @@ const SecuritySettings = () => {
     );
   };
 
-  // const handleTwoFactorToggle = async (enabled) => {
-  //   try {
-  //     // Simulate API call
-  //     await new Promise(resolve => setTimeout(resolve, 500));
-      
-  //     setTwoFactorEnabled(enabled);
-  //     message.success(
-  //       enabled 
-  //         ? '2FA enabled successfully!' 
-  //         : '2FA disabled successfully!'
-  //     );
-  //   } catch (error) {
-  //     message.error('Failed to update 2FA settings');
-  //   }
-  // };
-
-  const passwordStrengthCheck = (password) => {
-    if (!password) return { strength: 0, text: '', color: '' };
-    
-    let strength = 0;
-    const checks = {
-      length: password.length >= 8,
-      uppercase: /[A-Z]/.test(password),
-      lowercase: /[a-z]/.test(password),
-      numbers: /\d/.test(password),
-      special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
-    };
-    
-    strength = Object.values(checks).filter(Boolean).length;
-    
-    const levels = {
-      0: { text: '', color: '' },
-      1: { text: 'Very Weak', color: 'red' },
-      2: { text: 'Weak', color: 'orange' },
-      3: { text: 'Fair', color: 'yellow' },
-      4: { text: 'Good', color: 'blue' },
-      5: { text: 'Strong', color: 'green' }
-    };
-    
-    return { strength, ...levels[strength], checks };
-  };
-
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="mx-auto max-w-2xl space-y-6 px-4 pb-8 pt-4 sm:px-6">
       {/* Password Change Section */}
-      <Card title="Change Password" className="shadow-sm">
-        <Alert
-          message="Password Requirements"
-          description="Your password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and special characters."
-          type="info"
-          showIcon
-          className="mb-6"
-        />
-        
+      <Card
+        title="Change Password"
+        className="border-zinc-200/80 shadow-sm dark:border-zinc-800 dark:!bg-zinc-950 [&_.ant-card-head]:border-zinc-200/80 dark:[&_.ant-card-head]:border-zinc-800 dark:[&_.ant-card-head]:!bg-zinc-900 [&_.ant-card-head-title]:text-zinc-900 dark:[&_.ant-card-head-title]:text-zinc-100"
+      >
         <Form
           form={passwordForm}
           layout="vertical"
@@ -143,20 +81,6 @@ const SecuritySettings = () => {
             rules={[
               { required: true, message: 'Please enter your new password' },
               { min: 6, message: 'Password must be at least 6 characters long' },
-              {
-                validator: (_, value) => {
-                  if (!value) return Promise.resolve();
-                  const { checks } = passwordStrengthCheck(value);
-                  const failedChecks = Object.entries(checks)
-                    .filter(([_, passed]) => !passed)
-                    .map(([check]) => check);
-                  
-                  if (failedChecks.length > 2) {
-                    return Promise.reject(new Error('Password is too weak'));
-                  }
-                  return Promise.resolve();
-                }
-              }
             ]}
           >
             <Input.Password
@@ -199,7 +123,7 @@ const SecuritySettings = () => {
               htmlType="submit"
               loading={changePasswordMutation.isPending}
               size="large"
-              className="min-w-[160px] bg-purple-600 hover:bg-purple-700 border-purple-600 hover:border-purple-700"
+              className="min-w-[160px] border-blue-600 bg-blue-600 hover:border-blue-700 hover:bg-blue-700"
             >
               Change Password
             </Button>

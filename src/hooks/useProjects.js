@@ -1,17 +1,17 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { App } from 'antd';
-import { projectService } from '../services/projectService';
+import { useState, useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { App } from "antd";
+import { projectService } from "../services/projectService";
 import {
   invalidateAndRefetchActive,
   queryKeyPart,
-} from '../utils/invalidateQueries';
+} from "../utils/invalidateQueries";
 
 const DUPLICATE_FORM_FIELDS = new Set([
-  'name',
-  'short_code',
-  'env_name',
-  'repository_url',
+  "name",
+  "short_code",
+  "env_name",
+  "repository_url",
 ]);
 
 /** 400 responses for duplicate project fields are shown on the form, not as a toast. */
@@ -19,12 +19,12 @@ function isDuplicateProjectApiError(error) {
   const data = error?.response?.data;
   if (error?.response?.status !== 400 || !data) return false;
   if (data.field && DUPLICATE_FORM_FIELDS.has(data.field)) return true;
-  const msg = String(data.error || '').toLowerCase();
+  const msg = String(data.error || "").toLowerCase();
   return (
-    msg.includes('already exists') ||
-    msg.includes('already in use') ||
-    msg.includes('already linked') ||
-    msg.includes('already uses')
+    msg.includes("already exists") ||
+    msg.includes("already in use") ||
+    msg.includes("already linked") ||
+    msg.includes("already uses")
   );
 }
 
@@ -47,8 +47,8 @@ export const useProjects = () => {
       const data = await projectService.getProjects();
       setProjects(data);
     } catch (err) {
-      setError(err.message || 'Failed to fetch projects');
-      message.error('Failed to fetch projects');
+      setError(err.message || "Failed to fetch projects");
+      message.error("Failed to fetch projects");
     } finally {
       setLoading(false);
     }
@@ -58,17 +58,14 @@ export const useProjects = () => {
     setLoading(true);
     try {
       const newProject = await projectService.createProject(projectData);
-      setProjects(prev => [newProject, ...prev]);
-      await invalidateAndRefetchActive(
-        queryClient,
-        ['projects'],
-        ['project'],
-      );
-      message.success('Project created successfully!');
+      setProjects((prev) => [newProject, ...prev]);
+      await invalidateAndRefetchActive(queryClient, ["projects"], ["project"]);
+      message.success("Project created successfully!");
       return newProject;
     } catch (error) {
       if (!isDuplicateProjectApiError(error)) {
-        const errorMessage = error.response?.data?.error || 'Failed to create project';
+        const errorMessage =
+          error.response?.data?.error || "Failed to create project";
         message.error(errorMessage);
       }
       throw error;
@@ -80,31 +77,35 @@ export const useProjects = () => {
   const updateProject = async (projectData) => {
     setLoading(true);
     try {
-      const updatedProject = await projectService.updateProject(projectData.id, projectData);
-      setProjects(prev => 
-        prev.map(project => 
-          project.id === projectData.id ? updatedProject : project
-        )
+      const updatedProject = await projectService.updateProject(
+        projectData.id,
+        projectData,
+      );
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === projectData.id ? updatedProject : project,
+        ),
       );
       const pid = queryKeyPart(projectData.id);
       await invalidateAndRefetchActive(
         queryClient,
-        ['projects'],
-        ['project'],
-        ...(pid != null ? [['project', pid]] : []),
-        ['envVars'],
-        ...(pid != null ? [['envVars', pid]] : []),
-        ...(pid != null ? [['projectEnvVars', pid]] : []),
-        ...(pid != null ? [['projectDefaultEnvVars', pid]] : []),
-        ...(pid != null ? [['envProfiles', pid]] : []),
-        ['previewNodesByProject'],
-        ['previewServicesByProject'],
+        ["projects"],
+        ["project"],
+        ...(pid != null ? [["project", pid]] : []),
+        ["envVars"],
+        ...(pid != null ? [["envVars", pid]] : []),
+        ...(pid != null ? [["projectEnvVars", pid]] : []),
+        ...(pid != null ? [["projectDefaultEnvVars", pid]] : []),
+        ...(pid != null ? [["envProfiles", pid]] : []),
+        ["previewNodesByProject"],
+        ["previewServicesByProject"],
       );
-      message.success('Project updated successfully!');
+      message.success("Project updated successfully!");
       return updatedProject;
     } catch (error) {
       if (!isDuplicateProjectApiError(error)) {
-        const errorMessage = error.response?.data?.error || 'Failed to update project';
+        const errorMessage =
+          error.response?.data?.error || "Failed to update project";
         message.error(errorMessage);
       }
       throw error;
@@ -117,29 +118,30 @@ export const useProjects = () => {
     setLoading(true);
     try {
       await projectService.deleteProject(projectId);
-      setProjects(prev => prev.filter(project => project.id !== projectId));
+      setProjects((prev) => prev.filter((project) => project.id !== projectId));
       const pid = queryKeyPart(projectId);
       await invalidateAndRefetchActive(
         queryClient,
-        ['projects'],
-        ['project'],
-        ...(pid != null ? [['project', pid]] : []),
-        ['envVars'],
-        ...(pid != null ? [['envVars', pid]] : []),
-        ...(pid != null ? [['projectEnvVars', pid]] : []),
-        ...(pid != null ? [['projectDefaultEnvVars', pid]] : []),
-        ...(pid != null ? [['envProfiles', pid]] : []),
-        ['previewNodesByProject'],
-        ['previewNodesCatalog'],
-        ['previewServicesByProject'],
-        ['previewServicesCatalog'],
-        ['previewNode'],
-        ['previewServiceById'],
-        ['nodeBuildHistory'],
+        ["projects"],
+        ["project"],
+        ...(pid != null ? [["project", pid]] : []),
+        ["envVars"],
+        ...(pid != null ? [["envVars", pid]] : []),
+        ...(pid != null ? [["projectEnvVars", pid]] : []),
+        ...(pid != null ? [["projectDefaultEnvVars", pid]] : []),
+        ...(pid != null ? [["envProfiles", pid]] : []),
+        ["previewNodesByProject"],
+        ["previewNodesCatalog"],
+        ["previewServicesByProject"],
+        ["previewServicesCatalog"],
+        ["previewNode"],
+        ["previewServiceById"],
+        ["nodeBuildHistory"],
       );
-      message.success('Project deleted successfully!');
+      message.success("Project deleted successfully!");
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Failed to delete project';
+      const errorMessage =
+        error.response?.data?.error || "Failed to delete project";
       message.error(errorMessage);
       throw error;
     } finally {
@@ -152,7 +154,7 @@ export const useProjects = () => {
       const project = await projectService.getProjectById(id);
       return project;
     } catch (error) {
-      message.error('Failed to fetch project details');
+      message.error("Failed to fetch project details");
       throw error;
     }
   };
@@ -162,7 +164,7 @@ export const useProjects = () => {
       const projects = await projectService.getProjectsByStatus(status);
       return projects;
     } catch (error) {
-      message.error('Failed to fetch projects by status');
+      message.error("Failed to fetch projects by status");
       throw error;
     }
   };
@@ -172,19 +174,19 @@ export const useProjects = () => {
       const projects = await projectService.getProjectsByTag(tag);
       return projects;
     } catch (error) {
-      message.error('Failed to fetch projects by tag');
+      message.error("Failed to fetch projects by tag");
       throw error;
     }
   };
 
   const searchProjects = async (searchTerm) => {
     if (!searchTerm) return projects;
-    
+
     try {
       const results = await projectService.searchProjects(searchTerm);
       return results;
     } catch (error) {
-      message.error('Failed to search projects');
+      message.error("Failed to search projects");
       throw error;
     }
   };
@@ -192,23 +194,27 @@ export const useProjects = () => {
   const updateProjectStatus = async (projectId, status) => {
     setLoading(true);
     try {
-      const updatedProject = await projectService.updateProjectStatus(projectId, status);
-      setProjects(prev => 
-        prev.map(project => 
-          project.id === projectId ? updatedProject : project
-        )
+      const updatedProject = await projectService.updateProjectStatus(
+        projectId,
+        status,
+      );
+      setProjects((prev) =>
+        prev.map((project) =>
+          project.id === projectId ? updatedProject : project,
+        ),
       );
       const pid = queryKeyPart(projectId);
       await invalidateAndRefetchActive(
         queryClient,
-        ['projects'],
-        ['project'],
-        ...(pid != null ? [['project', pid]] : []),
+        ["projects"],
+        ["project"],
+        ...(pid != null ? [["project", pid]] : []),
       );
-      message.success('Project status updated successfully!');
+      message.success("Project status updated successfully!");
       return updatedProject;
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Failed to update project status';
+      const errorMessage =
+        error.response?.data?.error || "Failed to update project status";
       message.error(errorMessage);
       throw error;
     } finally {
@@ -232,9 +238,10 @@ export const useProjects = () => {
       total: projects.length,
       statusCounts,
       tagCounts,
-      activeProjects: projects.filter(p => p.status === 'Active').length,
-      developmentProjects: projects.filter(p => p.tag === 'development').length,
-      productionProjects: projects.filter(p => p.tag === 'production').length
+      activeProjects: projects.filter((p) => p.status === "Active").length,
+      developmentProjects: projects.filter((p) => p.tag === "development")
+        .length,
+      productionProjects: projects.filter((p) => p.tag === "production").length,
     };
   }, [projects]);
 
@@ -251,6 +258,6 @@ export const useProjects = () => {
     searchProjects,
     updateProjectStatus,
     projectStats,
-    refetch: fetchProjects
+    refetch: fetchProjects,
   };
 };

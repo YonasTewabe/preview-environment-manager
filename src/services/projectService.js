@@ -179,3 +179,5 @@ export const projectService = {
 };
 
 export default projectService;
+/** Shared axios instance (auth + base URL) for one-off calls e.g. dashboard */
+export { api };

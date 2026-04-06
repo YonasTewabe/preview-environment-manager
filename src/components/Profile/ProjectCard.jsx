@@ -2,7 +2,6 @@ import React, { useState, useRef } from "react";
 import { Tag, Button, Dropdown, Popover, Space } from "antd";
 import { previewKindShortLabel } from "../../utils/projectServiceKind";
 import { EditOutlined, DeleteOutlined, MoreOutlined } from "@ant-design/icons";
-import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
 
 const ProjectCard = ({
@@ -16,6 +15,8 @@ const ProjectCard = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const moreWrapRef = useRef(null);
+  const nodeCount =
+    Number(project.nodes_count ?? project.node_count ?? 0) || 0;
 
   const menuItems = [
     ...(canEdit
@@ -133,20 +134,17 @@ const ProjectCard = ({
           </span>
         </div>
 
-        {/* Project tag */}
-        <div className="flex items-center gap-2 mb-1 flex-wrap">
+        {/* Kind tag (left) + node count (far right), same row */}
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <Tag
             color={project.tag === "backend" ? "purple" : "blue"}
-            className="text-xs"
+            className="m-0 text-xs"
           >
             {previewKindShortLabel(project.tag)}
           </Tag>
-        </div>
-
-        {/* Creation Date */}
-        <div className="text-gray-900 text-sm mb-3">
-          Created{" "}
-          {dayjs(project.createdAt || project.created_at).format("MMM D,YYYY")}
+          <span className="shrink-0 text-right text-sm text-gray-900">
+            {nodeCount} {nodeCount === 1 ? "node" : "nodes"}
+          </span>
         </div>
 
         {/* Separator */}

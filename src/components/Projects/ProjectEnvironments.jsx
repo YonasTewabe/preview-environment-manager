@@ -299,19 +299,6 @@ const ProjectEnvironments = () => {
       ["projects"],
     );
 
-  const handleDiscardLocalChanges = () => {
-    setRows(
-      (Array.isArray(data?.env_vars) ? data.env_vars : []).map((e) => ({
-        env_variable: e.key,
-        env: e.value ?? "",
-      })),
-    );
-    setNewKey("");
-    setNewValue("");
-    setEditingKey(null);
-    setSelectedRowKeys([]);
-  };
-
   const handleAddOrUpdate = () => {
     const key = newKey.trim();
     const value = String(newValue ?? "").trim();
@@ -672,7 +659,8 @@ const ProjectEnvironments = () => {
             </div>
             <Typography.Text type="secondary" className="text-sm">
               Add profiles from Env management. Switch profile from there or the
-              sidebar. Nodes pick one profile; overrides still apply per node.
+              sidebar. Nodes use default profile; overrides still apply per
+              node.
             </Typography.Text>
           </div>
         }
@@ -709,9 +697,8 @@ const ProjectEnvironments = () => {
               icon={<StarOutlined />}
               disabled={
                 !activeProfileId ||
-                profiles.find(
-                  (p) => Number(p.id) === Number(activeProfileId),
-                )?.is_default
+                profiles.find((p) => Number(p.id) === Number(activeProfileId))
+                  ?.is_default
               }
               onClick={handleSetDefaultProfile}
             >
@@ -767,7 +754,9 @@ const ProjectEnvironments = () => {
                         <Button
                           danger
                           icon={<DeleteOutlined />}
-                          disabled={!rows.length || selectedRowKeys.length === 0}
+                          disabled={
+                            !rows.length || selectedRowKeys.length === 0
+                          }
                           onClick={handleDeleteSelected}
                         >
                           Delete selected
@@ -788,7 +777,9 @@ const ProjectEnvironments = () => {
                         <Button
                           danger
                           icon={<DeleteOutlined />}
-                          disabled={!rows.length || selectedRowKeys.length === 0}
+                          disabled={
+                            !rows.length || selectedRowKeys.length === 0
+                          }
                           onClick={handleDeleteSelected}
                         >
                           Delete selected

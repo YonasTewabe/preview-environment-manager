@@ -44,7 +44,6 @@ export default function ApiNodesTab({
     githubBranchesProp ?? githubHook.githubBranches;
   const loadingGithubBranches =
     loadingGithubBranchesProp ?? githubHook.loadingGithubBranches;
-  const { fetchGithubBranches } = githubHook;
 
   const detailServiceIdNum =
     detailServiceIdProp != null && detailServiceIdProp !== ""

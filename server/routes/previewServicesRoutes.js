@@ -141,6 +141,32 @@ router.get("/", async (req, res) => {
   }
 });
 
+/** All API-service preview nodes with build fields — used by dashboard (not the static sample `GET /`). */
+router.get("/summary", async (req, res) => {
+  try {
+    const rows = await Node.findAll({
+      where: { ...API_SVC },
+      attributes: [
+        "id",
+        "project_id",
+        "service_name",
+        "branch_name",
+        "build_status",
+        "build_number",
+        "updated_at",
+        "created_at",
+      ],
+      order: [["updated_at", "DESC"]],
+    });
+    res.json({
+      services: rows.map((r) => r.get({ plain: true })),
+    });
+  } catch (error) {
+    console.error("Error fetching preview-services summary:", error);
+    res.status(500).json({ error: "Failed to fetch preview services summary" });
+  }
+});
+
 // GET …/export — export from database
 router.get("/export", async (req, res) => {
   try {

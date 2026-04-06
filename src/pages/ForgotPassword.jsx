@@ -32,8 +32,8 @@ const ForgotPassword = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-blue-200 dark:bg-black px-4">
-        <Card className="w-full max-w-md dark:bg-black dark:border-gray-800">
+      <div className="flex min-h-screen items-center justify-center bg-blue-200 px-4 dark:bg-neutral-950">
+        <Card className="w-full max-w-md border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900">
           <div className="text-center">
             <div className="mx-auto w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
               <MailCheckIcon className="text-2xl text-green-600 dark:text-green-400" />
@@ -41,7 +41,7 @@ const ForgotPassword = () => {
             <Title level={3} className="mb-2 !text-black dark:!text-white">
               Check Your Email
             </Title>
-            <Text className="text-gray-700 dark:text-gray-300 mb-6 block">
+            <Text className="mb-6 block font-bold text-gray-700 dark:text-gray-300">
               If an account with that email exists, a password reset link has been sent to your email address. 
               Please check your inbox and spam folder.
             </Text>
@@ -65,8 +65,8 @@ const ForgotPassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-black px-4">
-      <Card className="w-full max-w-md dark:bg-black dark:border-gray-800">
+    <div className="flex min-h-screen items-center justify-center bg-[#f5f5f5] px-4 dark:bg-neutral-950">
+      <Card className="w-full max-w-md border-zinc-200/80 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div className="text-center mb-6">
           <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
             <MailCheckIcon className="text-2xl text-blue-600 dark:text-blue-400" />
@@ -74,7 +74,7 @@ const ForgotPassword = () => {
           <Title level={3} className="mb-2 !text-black dark:!text-white">
             Forgot Password?
           </Title>
-          <Text className="text-gray-700 dark:text-gray-300">
+          <Text className="font-bold text-gray-700 dark:text-gray-300">
             Enter your email address and we'll send you a link to reset your password.
           </Text>
         </div>

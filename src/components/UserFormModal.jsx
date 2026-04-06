@@ -1,8 +1,6 @@
 import { useEffect } from 'react';
-import { Modal, Form, Input, Select, Switch, Row, Col } from 'antd';
+import { Modal, Form, Input, Row, Col } from 'antd';
 import { UserOutlined, MailOutlined } from '@ant-design/icons';
-
-const { Option } = Select;
 
 const UserFormModal = ({ 
   visible, 
@@ -16,10 +14,10 @@ const UserFormModal = ({
   useEffect(() => {
     if (visible) {
       if (initialValues) {
-        // Editing existing user
+        const { role: _role, ...editable } = initialValues;
         form.setFieldsValue({
-          ...initialValues,
-          status: initialValues.status === 'Active'
+          ...editable,
+          status: String(initialValues.status ?? '').toLowerCase() === 'active',
         });
       } else {
         // Creating new user
@@ -37,7 +35,7 @@ const UserFormModal = ({
       // Convert status boolean back to string
       const formattedValues = {
         ...values,
-        status: values.status ? 'Active' : 'Inactive'
+        status: values.status ? 'active' : 'inactive',
       };
       onSubmit(formattedValues);
     } catch (error) {
@@ -204,52 +202,6 @@ const UserFormModal = ({
                 />
               </Form.Item>
             </Col>
-          </Row>
-
-          <Row gutter={16}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                name="role"
-                label={
-                  <span className="text-gray-700 font-medium">
-                    Role
-                  </span>
-                }
-                rules={[
-                  { 
-                    required: true, 
-                    message: 'Please select a role' 
-                  }
-                ]}
-              >
-                <Select
-                  placeholder="Select role"
-                  size="large"
-                  className="w-full"
-                >
-                  <Option value="Admin">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
-                      Admin
-                    </div>
-                  </Option>
-                  <Option value="Developer">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
-                      Developer
-                    </div>
-                  </Option>
-                  <Option value="Viewer">
-                    <div className="flex items-center">
-                      <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
-                      Viewer
-                    </div>
-                  </Option>
-                </Select>
-              </Form.Item>
-            </Col>
-
-            
           </Row>
 
           {initialValues && (
