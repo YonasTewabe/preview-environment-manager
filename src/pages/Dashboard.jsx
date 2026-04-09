@@ -79,7 +79,9 @@ const Dashboard = () => {
       ]);
 
       const statsPayload =
-        statsRes?.data && typeof statsRes.data === "object" ? statsRes.data : {};
+        statsRes?.data && typeof statsRes.data === "object"
+          ? statsRes.data
+          : {};
       const webServices = pickServices(webRes.data).filter(
         (s) => !s.is_deleted,
       );
@@ -171,10 +173,6 @@ const Dashboard = () => {
         </Title>
         <Text className="mb-1 block text-lg font-bold text-black dark:text-white">
           Welcome back, {user?.first_name || user?.username || "there"}
-        </Text>
-        <Text className="font-bold text-gray-700 dark:text-gray-300">
-          Here&apos;s what&apos;s happening with your preview environments
-          today.
         </Text>
       </div>
 

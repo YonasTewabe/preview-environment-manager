@@ -180,7 +180,7 @@ const Trash = () => {
           Trash
         </h2>
         <p className="font-bold text-gray-700 dark:text-gray-300">
-          Restore deleted items or remove them permanently
+          View deleted items
         </p>
       </div>
 

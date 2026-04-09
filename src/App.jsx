@@ -152,7 +152,7 @@ function App() {
                 } 
               />
               <Route
-                path="/system-settings"
+                path="/settings"
                 element={
                   <ProtectedRoute>
                     <MainLayout>

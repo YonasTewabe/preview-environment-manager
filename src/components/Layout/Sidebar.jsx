@@ -34,7 +34,7 @@ const Sidebar = ({ collapsed }) => {
     if (path.startsWith("/projects")) return ["/projects"];
     if (path.startsWith("/environments")) return ["/environments"];
     if (path.startsWith("/users")) return ["/users"];
-    if (path.startsWith("/system-settings")) return ["/system-settings"];
+    if (path.startsWith("/settings")) return ["/settings"];
     if (path.startsWith("/trash")) return ["/trash"];
     return [];
   };
@@ -65,10 +65,10 @@ const Sidebar = ({ collapsed }) => {
       onClick: () => navigate("/users"),
     },
     {
-      key: "/system-settings",
+      key: "/settings",
       icon: <SettingOutlined style={{ fontSize: "18px" }} />,
       label: "System settings",
-      onClick: () => navigate("/system-settings"),
+      onClick: () => navigate("/settings"),
     },
     {
       key: "/trash",
@@ -85,9 +85,7 @@ const Sidebar = ({ collapsed }) => {
       collapsedWidth={80}
       width={280}
       className={`flex flex-col border-r shadow-[1px_0_0_0_rgba(0,0,0,0.04)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.06)] ${
-        isDark
-          ? "!bg-zinc-950 border-zinc-800"
-          : "!bg-white border-gray-200/80"
+        isDark ? "!bg-zinc-950 border-zinc-800" : "!bg-white border-gray-200/80"
       }`}
       style={{
         overflow: "hidden",
@@ -165,9 +163,7 @@ const Sidebar = ({ collapsed }) => {
 
       <div
         className={`border-t pb-4 pt-3 ${
-          collapsed
-            ? "flex justify-center px-0"
-            : "px-2 sm:px-3"
+          collapsed ? "flex justify-center px-0" : "px-2 sm:px-3"
         } ${isDark ? "border-zinc-800" : "border-gray-200/80"}`}
       >
         <Button

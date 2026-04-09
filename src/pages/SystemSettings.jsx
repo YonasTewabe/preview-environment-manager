@@ -38,7 +38,7 @@ function SettingsTab({ title, description, fields, queryKey, load, save }) {
   const mutation = useMutation({
     mutationFn: save,
     onSuccess: () => {
-      message.success(`${title} settings saved`);
+      message.success(`Settings saved`);
     },
     onError: (error) => {
       message.error(
