@@ -3,6 +3,10 @@
 module.exports = {
   async up(queryInterface, Sequelize) {
     const table = "frontend_node_builds";
+    const hasTable = await queryInterface.tableExists(table);
+    if (!hasTable) {
+      return;
+    }
     const desc = await queryInterface.describeTable(table);
     if (desc.status) {
       return;
@@ -16,6 +20,10 @@ module.exports = {
 
   async down(queryInterface) {
     const table = "frontend_node_builds";
+    const hasTable = await queryInterface.tableExists(table);
+    if (!hasTable) {
+      return;
+    }
     const desc = await queryInterface.describeTable(table);
     if (!desc.status) {
       return;

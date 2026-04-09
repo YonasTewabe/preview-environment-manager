@@ -67,6 +67,36 @@ export const projectService = {
     return response.data;
   },
 
+  getTrashedProjects: async () => {
+    const response = await api.get("/projects/trash");
+    return response.data;
+  },
+
+  restoreProject: async (id) => {
+    const response = await api.patch(`/projects/${id}/restore`);
+    return response.data;
+  },
+
+  permanentlyDeleteProject: async (id) => {
+    const response = await api.delete(`/projects/${id}/permanent`);
+    return response.data;
+  },
+
+  getTrashedNodes: async () => {
+    const response = await api.get("/trash/nodes");
+    return response.data;
+  },
+
+  restoreNode: async (id) => {
+    const response = await api.patch(`/trash/nodes/${id}/restore`);
+    return response.data;
+  },
+
+  permanentlyDeleteNode: async (id) => {
+    const response = await api.delete(`/trash/nodes/${id}/permanent`);
+    return response.data;
+  },
+
   // Search projects (if you want to add this functionality)
   searchProjects: async (searchTerm) => {
     const response = await api.get('/projects/search', {

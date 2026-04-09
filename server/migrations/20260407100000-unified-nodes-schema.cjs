@@ -374,7 +374,6 @@ module.exports = {
       "preview_nodes_api",
       "frontend_nodes",
       "backend_nodes",
-      "project_environments",
     ];
 
     for (const t of drops) {

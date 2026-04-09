@@ -735,7 +735,7 @@ router.delete("/", async (req, res) => {
   }
 });
 
-// DELETE …/:id — hard delete (child rows with ON DELETE CASCADE: builds, env vars, branches)
+// DELETE …/:id — move to trash
 router.delete("/:id", async (req, res) => {
   try {
     const webNode = await Node.findOne({ where: { id: req.params.id, ...PREVIEW_DEPLOY } });
@@ -743,8 +743,8 @@ router.delete("/:id", async (req, res) => {
       return res.status(404).json({ error: "Preview node not found" });
     }
 
-    await webNode.destroy();
-    res.json({ message: "Preview node deleted successfully" });
+    await webNode.update({ is_deleted: true, updated_at: new Date() });
+    res.json({ message: "Preview node moved to trash successfully" });
   } catch (error) {
     console.error("Error deleting preview node:", error);
     res.status(500).json({ error: "Failed to delete preview node" });

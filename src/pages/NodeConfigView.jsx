@@ -1415,10 +1415,7 @@ export default function NodeConfigView({
                 </Tooltip>
               ))}
             <Popconfirm
-              title={`Delete “${selectedNode?.service_name}” permanently?`}
-              description={
-                "This will permanently delete the node and all associated data. This action cannot be undone."
-              }
+              title={`Delete “${selectedNode?.service_name}” node?`}
               okText="Delete"
               cancelText="Cancel"
               okButtonProps={{ danger: true }}

@@ -21,6 +21,7 @@ import ProjectDetail from './components/Projects/ProjectDetail';
 import ProjectEnvironments from './components/Projects/ProjectEnvironments';
 import EnvManagement from './pages/EnvManagement';
 import SystemSettings from './pages/SystemSettings';
+import Trash from "./pages/Trash";
 
 // Create a client
 const queryClient = new QueryClient({
@@ -156,6 +157,16 @@ function App() {
                   <ProtectedRoute>
                     <MainLayout>
                       <SystemSettings />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/trash"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <Trash />
                     </MainLayout>
                   </ProtectedRoute>
                 }

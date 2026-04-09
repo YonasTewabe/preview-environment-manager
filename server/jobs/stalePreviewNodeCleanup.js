@@ -53,6 +53,7 @@ export async function runStalePreviewNodeCleanup() {
     const id = node.id;
     const label = node.service_name || id;
     try {
+      let jenkinsOk = true;
       if (shouldRemoveDomainFromJenkins(node)) {
         const domain = String(node.domain_name).trim();
         const jResult = await deletePreviewDomainViaJenkins(domain);
@@ -61,6 +62,7 @@ export async function runStalePreviewNodeCleanup() {
             `[stale-preview-cleanup] Jenkins preview teardown ok for node ${id} (${label}), domain=${domain} (DB row kept).`,
           );
         } else {
+          jenkinsOk = false;
           console.warn(
             `[stale-preview-cleanup] Jenkins delete failed for node ${id} (${label}), domain=${domain}:`,
             jResult.message,
@@ -71,6 +73,15 @@ export async function runStalePreviewNodeCleanup() {
           `[stale-preview-cleanup] Skipped Jenkins for stale node ${id} (${label}) — no domain / preview to tear down.`,
         );
       }
+
+      // Soft-delete stale nodes so they move out of active lists and into Trash.
+      await node.update({
+        is_deleted: true,
+        status: "deleted",
+      });
+      console.warn(
+        `[stale-preview-cleanup] Node ${id} (${label}) moved to trash${jenkinsOk ? "" : " (after Jenkins failure)"}.`,
+      );
     } catch (err) {
       console.error(
         `[stale-preview-cleanup] Failed on node ${id} (${label}):`,
@@ -89,6 +100,7 @@ export function scheduleStalePreviewNodeCleanup() {
   }
 
   const schedule = process.env.STALE_PREVIEW_NODE_CRON?.trim() || "0 2 * * *";
+  console.warn(`[stale-preview-cleanup] Cron scheduled: "${schedule}"`);
   cron.schedule(schedule, () => {
     runStalePreviewNodeCleanup().catch((err) => {
       console.error("[stale-preview-cleanup] Scheduled run failed:", err);

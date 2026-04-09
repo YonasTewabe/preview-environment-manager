@@ -32,6 +32,13 @@ const DEFINITIONS = {
     envFallback: "JENKINS_JOB_DELETE_DOMAIN",
     required: true,
   },
+  jenkins_trigger_token: {
+    category: "jenkins",
+    isSecret: true,
+    envFallback: "JENKINS_TRIGGER_TOKEN",
+    required: false,
+    defaultValue: "domain",
+  },
   github_api_base: {
     category: "github",
     isSecret: false,

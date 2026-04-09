@@ -6,6 +6,7 @@ import {
   TeamOutlined,
   LogoutOutlined,
   SettingOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons";
 import { FaCodeBranch } from "react-icons/fa6";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -34,6 +35,7 @@ const Sidebar = ({ collapsed }) => {
     if (path.startsWith("/environments")) return ["/environments"];
     if (path.startsWith("/users")) return ["/users"];
     if (path.startsWith("/system-settings")) return ["/system-settings"];
+    if (path.startsWith("/trash")) return ["/trash"];
     return [];
   };
 
@@ -67,6 +69,12 @@ const Sidebar = ({ collapsed }) => {
       icon: <SettingOutlined style={{ fontSize: "18px" }} />,
       label: "System settings",
       onClick: () => navigate("/system-settings"),
+    },
+    {
+      key: "/trash",
+      icon: <DeleteOutlined style={{ fontSize: "18px" }} />,
+      label: "Trash",
+      onClick: () => navigate("/trash"),
     },
   ];
   return (

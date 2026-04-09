@@ -19,24 +19,22 @@ import {
   MoreOutlined,
 } from "@ant-design/icons";
 
-function NodeRowActions({
-  node,
-  onEditNode,
-  onDeleteNode,
-  deletingThis,
-}) {
+function NodeRowActions({ node, onEditNode, onDeleteNode, deletingThis }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const wrapRef = useRef(null);
 
   const deleteContent = (
     <div style={{ maxWidth: 300 }}>
-      <div style={{ fontWeight: 600, marginBottom: 8 }}>Delete this service?</div>
+      <div style={{ fontWeight: 600, marginBottom: 8 }}>
+        Delete this service?
+      </div>
       <p style={{ marginBottom: 12 }}>
         Are you sure you want to delete <strong>{node.service_name}</strong>?
-        This cannot be undone.
       </p>
-      <Space style={{ display: "flex", justifyContent: "flex-end", width: "100%" }}>
+      <Space
+        style={{ display: "flex", justifyContent: "flex-end", width: "100%" }}
+      >
         <Button size="small" onClick={() => setDeleteOpen(false)}>
           Cancel
         </Button>
@@ -231,102 +229,98 @@ export default function WebNodesList({
                 Number(node.id) === Number(deletingNodeId);
 
               return (
-              <Card
-                key={node.id}
-                className="shadow-sm relative"
-                onClick={() => {
-                  if (!deletingThis) onNodeClick(node);
-                }}
-                hoverable={!deletingThis}
-              >
-                {deletingThis ? (
-                  <div className="absolute inset-0 z-[1] flex items-center justify-center rounded-[inherit] bg-white/70">
-                    <Spin tip="Deleting…" />
-                  </div>
-                ) : null}
-                {/* Name + branch (match FrontendConfig service detail fields) */}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    gap: "16px",
+                <Card
+                  key={node.id}
+                  className="shadow-sm relative"
+                  onClick={() => {
+                    if (!deletingThis) onNodeClick(node);
                   }}
+                  hoverable={!deletingThis}
                 >
+                  {deletingThis ? (
+                    <div className="absolute inset-0 z-[1] flex items-center justify-center rounded-[inherit] bg-white/70">
+                      <Spin tip="Deleting…" />
+                    </div>
+                  ) : null}
+                  {/* Name + branch (match FrontendConfig service detail fields) */}
                   <div
                     style={{
-                      flex: 1,
-                      minWidth: 0,
                       display: "flex",
-                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      alignItems: "flex-start",
                       gap: "16px",
                     }}
                   >
-                    <div>
-                      <Text
-                        strong
-                        style={{
-                          fontSize: "12px",
-                          color: "#64748b",
-                          display: "block",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        Node Name:
-                      </Text>
-                      <Input
-                        value={
-                          node.service_name
-                            ? String(node.service_name)
-                            : "—"
-                        }
-                        readOnly
-                        style={{
-                          backgroundColor: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: "6px",
-                          fontSize: "12px",
-                          color: "#64748b",
-                        }}
-                      />
+                    <div
+                      style={{
+                        flex: 1,
+                        minWidth: 0,
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "16px",
+                      }}
+                    >
+                      <div>
+                        <Text
+                          strong
+                          style={{
+                            fontSize: "12px",
+                            color: "#64748b",
+                            display: "block",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Node Name:
+                        </Text>
+                        <Input
+                          value={
+                            node.service_name ? String(node.service_name) : "—"
+                          }
+                          readOnly
+                          style={{
+                            backgroundColor: "#f8fafc",
+                            border: "1px solid #e2e8f0",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            color: "#64748b",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <Text
+                          strong
+                          style={{
+                            fontSize: "12px",
+                            color: "#64748b",
+                            display: "block",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Branch:
+                        </Text>
+                        <Input
+                          value={
+                            node.branch_name ? String(node.branch_name) : "—"
+                          }
+                          readOnly
+                          style={{
+                            backgroundColor: "#f8fafc",
+                            border: "1px solid #e2e8f0",
+                            borderRadius: "6px",
+                            fontSize: "12px",
+                            color: "#64748b",
+                          }}
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <Text
-                        strong
-                        style={{
-                          fontSize: "12px",
-                          color: "#64748b",
-                          display: "block",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        Branch:
-                      </Text>
-                      <Input
-                        value={
-                          node.branch_name
-                            ? String(node.branch_name)
-                            : "—"
-                        }
-                        readOnly
-                        style={{
-                          backgroundColor: "#f8fafc",
-                          border: "1px solid #e2e8f0",
-                          borderRadius: "6px",
-                          fontSize: "12px",
-                          color: "#64748b",
-                        }}
-                      />
-                    </div>
+                    <NodeRowActions
+                      node={node}
+                      onEditNode={onEditNode}
+                      onDeleteNode={onDeleteNode}
+                      deletingThis={deletingThis}
+                    />
                   </div>
-                  <NodeRowActions
-                    node={node}
-                    onEditNode={onEditNode}
-                    onDeleteNode={onDeleteNode}
-                    deletingThis={deletingThis}
-                  />
-                </div>
-              </Card>
+                </Card>
               );
             })}
           </div>

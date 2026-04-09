@@ -647,7 +647,7 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// DELETE /api/backendnodes - Delete a specific backend node  
+// DELETE /api/backendnodes - Move a specific backend node to trash
 router.delete("/:id", async (req, res) => {
   try {
     const backendNode = await Node.findOne({ where: { id: req.params.id, ...API_SVC } });
@@ -655,8 +655,8 @@ router.delete("/:id", async (req, res) => {
       return res.status(404).json({ error: "Backend node not found" });
     }
 
-    await backendNode.destroy();
-    res.json({ message: "Backend node deleted successfully" });
+    await backendNode.update({ is_deleted: true, updated_at: new Date() });
+    res.json({ message: "Backend node moved to trash successfully" });
   } catch (error) {
     console.error("Error deleting backend node:", error);
     res.status(500).json({ error: "Failed to delete backend node" });

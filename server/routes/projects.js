@@ -11,6 +11,14 @@ import { refreshStatsAfterMutation } from "../services/statsService.js";
 
 const router = express.Router();
 router.use(refreshStatsAfterMutation);
+const ACTIVE_PROJECT_WHERE = { is_deleted: false };
+
+async function findActiveProjectByPk(id, options = {}) {
+  return Project.findOne({
+    where: { id, ...ACTIVE_PROJECT_WHERE },
+    ...options,
+  });
+}
 
 async function envProfileNameTaken(projectId, nameTrimmed, excludeProfileId) {
   const want = String(nameTrimmed ?? "").trim().toLowerCase();
@@ -52,7 +60,7 @@ async function findFirstDuplicateProjectField(payload, excludeProjectId) {
       : {};
 
   const rows = await Project.findAll({
-    where: idFilter,
+    where: { ...idFilter, ...ACTIVE_PROJECT_WHERE },
     attributes: ["name", "short_code", "repository_url", "env_name"],
   });
 
@@ -224,6 +232,7 @@ const projectDetailIncludes = [
 router.get("/", async (req, res) => {
   try {
     const projects = await Project.findAll({
+      where: ACTIVE_PROJECT_WHERE,
       attributes: { exclude: ["status"] },
       include: projectDetailIncludes,
       order: [["created_at", "DESC"]],
@@ -271,7 +280,7 @@ router.get("/", async (req, res) => {
 // GET /api/projects/:id - Get a specific project
 router.get("/:id", async (req, res) => {
   try {
-    const project = await Project.findByPk(req.params.id, {
+    const project = await findActiveProjectByPk(req.params.id, {
       attributes: { exclude: ["status"] },
       include: projectDetailIncludes,
     });
@@ -288,7 +297,7 @@ router.get("/:id", async (req, res) => {
   } catch (error) {
     if (isUnknownColumnError(error, 'Project.env_name') || isUnknownColumnError(error, 'env_name')) {
       try {
-        const project = await Project.findByPk(req.params.id, {
+        const project = await findActiveProjectByPk(req.params.id, {
           attributes: { exclude: ['status', 'env_name'] },
           include: [
             {
@@ -405,7 +414,7 @@ router.put("/:id", async (req, res) => {
       tag: tagRaw,
     } = req.body;
 
-    const project = await Project.findByPk(req.params.id);
+    const project = await findActiveProjectByPk(req.params.id);
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
@@ -482,16 +491,70 @@ router.put("/:id", async (req, res) => {
 // DELETE /api/projects/:id - Delete a project
 router.delete("/:id", async (req, res) => {
   try {
-    const project = await Project.findByPk(req.params.id);
+    const project = await findActiveProjectByPk(req.params.id);
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
 
-    await project.destroy();
-    res.json({ message: "Project deleted successfully" });
+    await project.update({ is_deleted: true });
+    await Node.update(
+      { is_deleted: true, updated_at: new Date() },
+      { where: { project_id: project.id } },
+    );
+    res.json({ message: "Project moved to trash successfully" });
   } catch (error) {
     console.error("Error deleting project:", error);
     res.status(500).json({ error: "Failed to delete project" });
+  }
+});
+
+// GET /api/projects/trash - List deleted projects
+router.get("/trash", async (_req, res) => {
+  try {
+    const projects = await Project.findAll({
+      where: { is_deleted: true },
+      attributes: { exclude: ["status"] },
+      include: [
+        {
+          model: User,
+          as: "creator",
+          attributes: ["id", "username", "email", "first_name", "last_name"],
+        },
+      ],
+      order: [["updated_at", "DESC"]],
+    });
+    res.json(projects.map((p) => sanitizeProject(p)));
+  } catch (error) {
+    console.error("Error fetching trashed projects:", error);
+    res.status(500).json({ error: "Failed to fetch trashed projects" });
+  }
+});
+
+// PATCH /api/projects/:id/restore - Restore a soft-deleted project
+router.patch("/:id/restore", async (req, res) => {
+  try {
+    const project = await Project.findOne({
+      where: { id: req.params.id, is_deleted: true },
+    });
+    if (!project) return res.status(404).json({ error: "Project not found in trash" });
+    await project.update({ is_deleted: false });
+    res.json({ message: "Project restored successfully" });
+  } catch (error) {
+    console.error("Error restoring project:", error);
+    res.status(500).json({ error: "Failed to restore project" });
+  }
+});
+
+// DELETE /api/projects/:id/permanent - Permanently delete a project
+router.delete("/:id/permanent", async (req, res) => {
+  try {
+    const project = await Project.findOne({ where: { id: req.params.id } });
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    await project.destroy();
+    res.json({ message: "Project permanently deleted" });
+  } catch (error) {
+    console.error("Error permanently deleting project:", error);
+    res.status(500).json({ error: "Failed to permanently delete project" });
   }
 });
 
@@ -500,10 +563,10 @@ router.put("/:id/environments", async (req, res) => {
   try {
     let project;
     try {
-      project = await Project.findByPk(req.params.id);
+      project = await findActiveProjectByPk(req.params.id);
     } catch (e) {
       if (isUnknownColumnError(e, 'Project.env_name') || isUnknownColumnError(e, 'env_name')) {
-        project = await Project.findByPk(req.params.id, {
+        project = await findActiveProjectByPk(req.params.id, {
           attributes: { exclude: ['env_name'] },
         });
       } else {
@@ -599,7 +662,7 @@ router.put("/:id/environments", async (req, res) => {
 
 router.get("/:id/env-profiles", async (req, res) => {
   try {
-    const project = await Project.findByPk(req.params.id);
+    const project = await findActiveProjectByPk(req.params.id);
     if (!project) return res.status(404).json({ error: "Project not found" });
     const rows = await ProjectEnvProfile.findAll({
       where: { project_id: project.id },
@@ -627,7 +690,7 @@ router.get("/:id/env-profiles", async (req, res) => {
 
 router.post("/:id/env-profiles", async (req, res) => {
   try {
-    const project = await Project.findByPk(req.params.id);
+    const project = await findActiveProjectByPk(req.params.id);
     if (!project) return res.status(404).json({ error: "Project not found" });
     let { name, slug: slugRaw, is_default: isDefaultRaw } = req.body || {};
     name = String(name ?? "").trim();
@@ -683,7 +746,7 @@ router.post("/:id/env-profiles", async (req, res) => {
 
 router.patch("/:id/env-profiles/:profileId", async (req, res) => {
   try {
-    const project = await Project.findByPk(req.params.id);
+    const project = await findActiveProjectByPk(req.params.id);
     if (!project) return res.status(404).json({ error: "Project not found" });
     const pid = parseInt(req.params.profileId, 10);
     if (!Number.isFinite(pid)) {
@@ -745,7 +808,7 @@ router.patch("/:id/env-profiles/:profileId", async (req, res) => {
 
 router.delete("/:id/env-profiles/:profileId", async (req, res) => {
   try {
-    const project = await Project.findByPk(req.params.id);
+    const project = await findActiveProjectByPk(req.params.id);
     if (!project) return res.status(404).json({ error: "Project not found" });
     const pid = parseInt(req.params.profileId, 10);
     if (!Number.isFinite(pid)) {

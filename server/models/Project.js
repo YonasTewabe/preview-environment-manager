@@ -75,6 +75,11 @@ Project.init(
         key: 'id',
       },
     },
+    is_deleted: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
   },
   {
     sequelize,
@@ -88,6 +93,7 @@ Project.init(
       { fields: ['status'] },
       { fields: ['tag'] },
       { fields: ['created_by'] },
+      { fields: ['is_deleted'] },
     ],
   }
 );
