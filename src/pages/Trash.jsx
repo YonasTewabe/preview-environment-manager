@@ -188,19 +188,6 @@ const Trash = () => {
         defaultActiveKey="projects"
         items={[
           {
-            key: "projects",
-            label: `Projects (${trashedProjects.length})`,
-            children: (
-              <Table
-                rowKey="id"
-                dataSource={trashedProjects}
-                columns={projectColumns}
-                loading={projectsLoading}
-                pagination={{ pageSize: 10 }}
-              />
-            ),
-          },
-          {
             key: "nodes",
             label: `Nodes (${trashedNodes.length})`,
             children: (
@@ -222,6 +209,19 @@ const Trash = () => {
                   pagination={{ pageSize: 10 }}
                 />
               </div>
+            ),
+          },
+          {
+            key: "projects",
+            label: `Projects (${trashedProjects.length})`,
+            children: (
+              <Table
+                rowKey="id"
+                dataSource={trashedProjects}
+                columns={projectColumns}
+                loading={projectsLoading}
+                pagination={{ pageSize: 10 }}
+              />
             ),
           },
         ]}

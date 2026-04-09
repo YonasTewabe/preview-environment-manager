@@ -7,15 +7,11 @@ import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import MainLayout from './components/Layout/MainLayout';
 import Dashboard from './pages/Dashboard';
-import Home from './pages/Home';
 import NodeConfigPage from './pages/NodeConfigPage';
-import ConfigLegacyRedirect from './pages/ConfigLegacyRedirect';
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import UserManagement from './pages/UserManagement';
-import ProfileSettings from './pages/ProfileSettings';
-import ProfileProjects from './components/Profile/ProfileProjects';
 import MyProjects from './components/Projects/MyProjects';
 import ProjectDetail from './components/Projects/ProjectDetail';
 import ProjectEnvironments from './components/Projects/ProjectEnvironments';
@@ -55,32 +51,12 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route 
-                path="/home" 
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <Home />
-                    </MainLayout>
-                  </ProtectedRoute>
-                } 
-              />
               <Route
                 path="/projects/:projectId/nodes/:nodeId"
                 element={
                   <ProtectedRoute>
                     <MainLayout>
                       <NodeConfigPage />
-                    </MainLayout>
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/config/:id"
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <ConfigLegacyRedirect />
                     </MainLayout>
                   </ProtectedRoute>
                 }
@@ -106,22 +82,6 @@ function App() {
                   </ProtectedRoute>} />
               </Route>
               <Route
-                path="/nodes/backend"
-                element={<Navigate to="/projects" replace />}
-              />
-              <Route
-                path="/nodes/frontend"
-                element={<Navigate to="/projects" replace />}
-              />
-              <Route
-                path="/preview-services"
-                element={<Navigate to="/projects" replace />}
-              />
-              <Route
-                path="/preview-nodes"
-                element={<Navigate to="/projects" replace />}
-              />
-              <Route
                 path="/environments"
                 element={
                   <ProtectedRoute>
@@ -137,16 +97,6 @@ function App() {
                   <ProtectedRoute>
                     <MainLayout>
                       <UserManagement />
-                    </MainLayout>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/profile" 
-                element={
-                  <ProtectedRoute>
-                    <MainLayout>
-                      <ProfileSettings />
                     </MainLayout>
                   </ProtectedRoute>
                 } 

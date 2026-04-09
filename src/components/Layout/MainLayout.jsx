@@ -5,7 +5,6 @@ import {
   SunOutlined,
   UserOutlined,
   LogoutOutlined,
-  SettingOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
@@ -39,17 +38,6 @@ const MainLayout = ({ children }) => {
   };
 
   const userMenuItems = [
-    {
-      key: "profile",
-      icon: <UserOutlined />,
-      label: "Profile",
-      onClick: () => {
-        navigate("/profile");
-      },
-    },
-    {
-      type: "divider",
-    },
     {
       key: "logout",
       icon: <LogoutOutlined />,
