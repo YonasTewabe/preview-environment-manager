@@ -263,19 +263,20 @@ const UserManagement = () => {
     <div className="space-y-6 text-black dark:text-white">
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="mb-0 text-3xl font-bold text-blue-900 dark:text-blue-400">
+          <h2 className="mb-0 text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-400">
             User Management
           </h2>
           <p className="font-bold text-gray-700 dark:text-gray-300">
             Manage your application users
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
           <Button
             icon={<ReloadOutlined />}
             onClick={handleRefresh}
             size="large"
             loading={isLoading}
+            className="w-full sm:w-auto"
           >
             Refresh
           </Button>
@@ -285,6 +286,7 @@ const UserManagement = () => {
             onClick={handleCreateUser}
             size="large"
             className="!border-blue-600 !bg-blue-600 hover:!bg-blue-700"
+            style={{ width: "100%", maxWidth: 220 }}
           >
             Create New User
           </Button>

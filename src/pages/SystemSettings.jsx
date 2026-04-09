@@ -167,7 +167,7 @@ const SystemSettings = () => {
   return (
     <div className="space-y-6 text-black dark:text-white">
       <div className="mb-2">
-        <h2 className="mb-0 text-3xl font-bold text-blue-900 dark:text-blue-400">
+        <h2 className="mb-0 text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-400">
           System settings
         </h2>
         <p className="font-bold text-gray-700 dark:text-gray-300">
@@ -177,10 +177,11 @@ const SystemSettings = () => {
 
       <Tabs
         defaultActiveKey="jenkins"
+        tabBarGutter={8}
         items={[
           {
             key: "jenkins",
-            label: "Jenkins Connection",
+            label: "Jenkins",
             children: (
               <SettingsTab
                 fields={jenkinsFields}
@@ -192,7 +193,7 @@ const SystemSettings = () => {
           },
           {
             key: "github",
-            label: "GitHub Connection",
+            label: "GitHub",
             children: (
               <SettingsTab
                 fields={githubFields}

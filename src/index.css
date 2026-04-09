@@ -19,3 +19,24 @@ body {
 #root {
   @apply min-h-full;
 }
+
+/* Small-screen polish for dense Ant Design UIs */
+@media (max-width: 640px) {
+  .ant-tabs-top > .ant-tabs-nav {
+    margin-bottom: 12px;
+  }
+
+  .ant-tabs-tab {
+    padding: 8px 10px !important;
+  }
+
+  .ant-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .ant-card .ant-card-head-title {
+    white-space: normal;
+  }
+}

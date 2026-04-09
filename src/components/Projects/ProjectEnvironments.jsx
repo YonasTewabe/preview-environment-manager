@@ -714,14 +714,7 @@ const ProjectEnvironments = () => {
               key: "one",
               label: "Manual entry",
               children: (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 2fr auto",
-                    gap: 12,
-                    alignItems: "start",
-                  }}
-                >
+                <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[1fr_2fr_auto]">
                   <Input
                     value={newKey}
                     onChange={(e) => setNewKey(e.target.value)}
@@ -735,7 +728,7 @@ const ProjectEnvironments = () => {
                     rows={1}
                     autoSize={{ minRows: 1, maxRows: 4 }}
                   />
-                  <Space>
+                    <Space wrap>
                     {editingKey ? (
                       <>
                         <Button
@@ -826,7 +819,7 @@ const ProjectEnvironments = () => {
                     rows={12}
                     style={{ fontFamily: "monospace", fontSize: 12 }}
                   />
-                  <div style={{ marginTop: 12 }}>
+                  <div className="mt-3">
                     <Space wrap>
                       <Button
                         type="primary"
@@ -883,6 +876,7 @@ const ProjectEnvironments = () => {
                 </div>
               ),
             }}
+            scroll={{ x: 760 }}
           />
         </div>
       </Card>

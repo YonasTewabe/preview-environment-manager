@@ -1346,7 +1346,7 @@ export default function NodeConfigView({
           onClick={() =>
             navigate(`/projects/${routeProjectId ?? selectedNode?.project_id}`)
           }
-          className={`${isDark ? "dark:!text-white" : "!text-black"} !font-semibold !text-lg`}
+          className={`${isDark ? "dark:!text-white" : "!text-black"} !font-semibold !text-base sm:!text-lg`}
         >
           Back
         </Button>
@@ -1359,9 +1359,13 @@ export default function NodeConfigView({
             justifyContent: "space-between",
             alignItems: "flex-start",
             gap: 16,
+            flexWrap: "wrap",
           }}
         >
-          <Title level={2} className="user-select-none font-semibold ">
+          <Title
+            level={3}
+            className="!mb-0 user-select-none font-semibold sm:!text-3xl"
+          >
             Node Configuration
           </Title>
 
@@ -1465,7 +1469,7 @@ export default function NodeConfigView({
           >
             <Row gutter={[24, 16]}>
               {/* Left: name + branch */}
-              <Col span={12}>
+              <Col xs={24} md={12}>
                 <div
                   style={{
                     display: "flex",
@@ -1537,7 +1541,7 @@ export default function NodeConfigView({
               </Col>
 
               {/* Right: preview link + port */}
-              <Col span={12}>
+              <Col xs={24} md={12}>
                 <div
                   style={{
                     display: "flex",
@@ -1758,6 +1762,7 @@ export default function NodeConfigView({
                         ),
                       },
                     ]}
+                    scroll={{ x: 680 }}
                   />
                 </Col>
 
@@ -1765,14 +1770,7 @@ export default function NodeConfigView({
                   <Text strong style={{ display: "block", marginBottom: 12 }}>
                     Node Overrides (only this node)
                   </Text>
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 2fr auto",
-                      gap: 12,
-                      alignItems: "start",
-                    }}
-                  >
+                  <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-[1fr_2fr_auto]">
                     <Select
                       showSearch
                       optionFilterProp="label"
@@ -1799,7 +1797,7 @@ export default function NodeConfigView({
                       rows={1}
                       autoSize={{ minRows: 1, maxRows: 4 }}
                     />
-                    <Space>
+                    <Space wrap>
                       {editingOverrideKey ? (
                         <Button
                           onClick={() => {
@@ -1893,6 +1891,7 @@ export default function NodeConfigView({
                           ),
                         },
                       ]}
+                      scroll={{ x: 680 }}
                     />
                   </div>
                   <div style={{ marginTop: 8, color: "#64748b", fontSize: 12 }}>
@@ -1966,6 +1965,7 @@ export default function NodeConfigView({
                       d ? dayjs(d).format("YYYY-MM-DD HH:mm:ss") : "—",
                   },
                 ]}
+                scroll={{ x: 760 }}
               />
             </Card>
           </>

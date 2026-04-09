@@ -257,9 +257,9 @@ const ProjectDetail = () => {
 
   return (
     <div className="pb-8">
-      <div className="mb-4 flex item-center gap-4  ">
+      <div className="mb-4 flex item-center gap-4">
         <Button
-          className="!text-black !font-semibold !text-lg"
+          className="!text-black !font-semibold !text-base sm:!text-lg"
           type="link"
           onClick={() => navigate("/projects")}
           icon={<ArrowLeftOutlined />}
@@ -270,13 +270,13 @@ const ProjectDetail = () => {
       <div className="grid md:grid-cols-12 gap-4">
         {/* Details Section */}
         <Card className="md:col-span-12 col-span-1">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold">{name}</h1>
-              <h4 className="text-sm text-gray-500">{description}</h4>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="truncate text-xl sm:text-2xl font-semibold">{name}</h1>
+              <h4 className="mt-1 break-words text-sm text-gray-500">{description}</h4>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap justify-end">
+            <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
               {repository_url && (
                 <Tooltip title="Open repository in new tab">
                   <a
@@ -392,6 +392,7 @@ const ProjectDetail = () => {
               type="primary"
               icon={<EnvironmentOutlined />}
               onClick={() => navigate(`/projects/${projectId}/environments`)}
+              className="w-full sm:w-auto"
             >
               Manage Environments
             </Button>
@@ -408,7 +409,7 @@ const ProjectDetail = () => {
               </span>
               <Space wrap align="start">
                 <Select
-                  style={{ minWidth: 260 }}
+                  style={{ minWidth: 220, width: "100%" }}
                   placeholder="Choose default profile"
                   disabled={settingDefaultProfile}
                   value={defaultProfileSelectValue}

@@ -1,5 +1,5 @@
-import { useState, useRef, useLayoutEffect } from "react";
-import { Layout, Button, Space, Dropdown, Avatar, Tooltip } from "antd";
+import { useState, useRef, useLayoutEffect, useEffect } from "react";
+import { Layout, Button, Space, Dropdown, Avatar, Tooltip, Grid } from "antd";
 import {
   MoonOutlined,
   SunOutlined,
@@ -14,6 +14,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const { Header, Content } = Layout;
+const { useBreakpoint } = Grid;
 
 /** Header control hovers match active `.sidebar-menu .ant-menu-item-selected` colors */
 const headerCtrlHover =
@@ -21,15 +22,22 @@ const headerCtrlHover =
 
 const MainLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const mainScrollRef = useRef(null);
+  const screens = useBreakpoint();
+  const isMobile = !screens.lg;
 
   useLayoutEffect(() => {
     mainScrollRef.current?.scrollTo(0, 0);
     window.scrollTo(0, 0);
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    setMobileNavOpen(false);
   }, [location.pathname, location.search]);
 
   const handleLogout = () => {
@@ -51,12 +59,17 @@ const MainLayout = ({ children }) => {
       className={`min-h-screen ${isDark ? "bg-neutral-950" : "bg-[#f5f5f5]"}`}
       style={{ minHeight: "100vh" }}
     >
-      <Sidebar collapsed={collapsed} />
+      <Sidebar
+        collapsed={collapsed}
+        isMobile={isMobile}
+        mobileOpen={mobileNavOpen}
+        onMobileClose={() => setMobileNavOpen(false)}
+      />
 
       <Layout
         className={`min-h-screen ${isDark ? "bg-neutral-950" : "bg-[#f5f5f5]"}`}
         style={{
-          marginLeft: collapsed ? 80 : 280,
+          marginLeft: isMobile ? 0 : collapsed ? 80 : 280,
           transition: "margin-left 0.2s",
           minHeight: "100vh",
           display: "flex",
@@ -71,13 +84,31 @@ const MainLayout = ({ children }) => {
           }`}
         >
           <div className="flex min-h-0 min-w-0 flex-1 items-center gap-2 sm:gap-3">
-            <Tooltip title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+            <Tooltip
+              title={
+                isMobile
+                  ? "Open navigation"
+                  : collapsed
+                    ? "Expand sidebar"
+                    : "Collapse sidebar"
+              }
+            >
               <Button
                 type="text"
                 icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
                 className={`!inline-flex !size-10 shrink-0 !items-center !justify-center rounded-lg text-zinc-700 transition-colors dark:text-zinc-300 ${headerCtrlHover}`}
-                onClick={() => setCollapsed((c) => !c)}
-                aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+                onClick={() =>
+                  isMobile
+                    ? setMobileNavOpen(true)
+                    : setCollapsed((c) => !c)
+                }
+                aria-label={
+                  isMobile
+                    ? "Open navigation"
+                    : collapsed
+                      ? "Expand sidebar"
+                      : "Collapse sidebar"
+                }
               />
             </Tooltip>
           </div>
@@ -122,7 +153,7 @@ const MainLayout = ({ children }) => {
         <Content className="flex min-h-0 flex-1 flex-col p-0">
           <div
             ref={mainScrollRef}
-            className={`min-h-0 flex-1 overflow-y-auto p-6 ${isDark ? "bg-neutral-950" : "bg-[#f5f5f5]"}`}
+            className={`min-h-0 flex-1 overflow-y-auto p-3 sm:p-6 ${isDark ? "bg-neutral-950" : "bg-[#f5f5f5]"}`}
           >
             <div className="text-zinc-900 dark:text-zinc-50">{children}</div>
           </div>

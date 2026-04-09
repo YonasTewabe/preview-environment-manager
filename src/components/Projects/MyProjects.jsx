@@ -128,22 +128,24 @@ const MyProjects = () => {
   return (
     <div className="space-y-6 text-black dark:text-white">
       {/* Page Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-blue-900 dark:text-blue-400 mb-0">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="mb-0 text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-400">
             My Projects
           </h2>
           <p className="font-bold text-gray-700 dark:text-gray-300">
             Manage and monitor all your development projects
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
           <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={handleAddProject}
             className="!bg-blue-600 !border-blue-600 hover:!bg-blue-700"
             size="large"
+            block
+            style={{ maxWidth: 220 }}
           >
             Add New Project
           </Button>
@@ -211,7 +213,7 @@ const MyProjects = () => {
             </Row>
 
             {filteredProjects.length > pageSize && (
-              <div className="flex justify-center mt-6">
+              <div className="mt-6 overflow-x-auto">
                 <Pagination
                   current={currentPage}
                   total={filteredProjects.length}

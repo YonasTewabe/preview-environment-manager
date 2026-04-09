@@ -176,7 +176,7 @@ const Trash = () => {
   return (
     <div className="space-y-6 text-black dark:text-white">
       <div className="mb-2">
-        <h2 className="mb-0 text-3xl font-bold text-blue-900 dark:text-blue-400">
+        <h2 className="mb-0 text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-400">
           Trash
         </h2>
         <p className="font-bold text-gray-700 dark:text-gray-300">
@@ -185,7 +185,8 @@ const Trash = () => {
       </div>
 
       <Tabs
-        defaultActiveKey="projects"
+        defaultActiveKey="nodes"
+        tabBarGutter={8}
         items={[
           {
             key: "nodes",
@@ -198,7 +199,7 @@ const Trash = () => {
                     value={nodeSearchText}
                     onChange={(e) => setNodeSearchText(e.target.value)}
                     placeholder="Search node name or branch"
-                    style={{ width: 320, maxWidth: "100%" }}
+                    style={{ width: "100%", maxWidth: 320 }}
                   />
                 </Space>
                 <Table
@@ -207,6 +208,7 @@ const Trash = () => {
                   columns={nodeColumns}
                   loading={nodesLoading}
                   pagination={{ pageSize: 10 }}
+                  scroll={{ x: 860 }}
                 />
               </div>
             ),
@@ -221,6 +223,7 @@ const Trash = () => {
                 columns={projectColumns}
                 loading={projectsLoading}
                 pagination={{ pageSize: 10 }}
+                scroll={{ x: 860 }}
               />
             ),
           },

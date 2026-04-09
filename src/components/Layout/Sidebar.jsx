@@ -1,4 +1,4 @@
-import { Layout, Menu, Typography, Button } from "antd";
+import { Layout, Menu, Typography, Button, Drawer } from "antd";
 import {
   AppstoreOutlined,
   UnorderedListOutlined,
@@ -16,7 +16,7 @@ import { useTheme } from "../../contexts/ThemeContext";
 const { Sider } = Layout;
 const { Text } = Typography;
 
-const Sidebar = ({ collapsed }) => {
+const Sidebar = ({ collapsed, isMobile = false, mobileOpen = false, onMobileClose }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
@@ -77,34 +77,15 @@ const Sidebar = ({ collapsed }) => {
       onClick: () => navigate("/trash"),
     },
   ];
-  return (
-    <Sider
-      trigger={null}
-      collapsible
-      collapsed={collapsed}
-      collapsedWidth={80}
-      width={280}
-      className={`flex flex-col border-r shadow-[1px_0_0_0_rgba(0,0,0,0.04)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.06)] ${
-        isDark ? "!bg-zinc-950 border-zinc-800" : "!bg-white border-gray-200/80"
-      }`}
-      style={{
-        overflow: "hidden",
-        height: "100vh",
-        position: "fixed",
-        left: 0,
-        top: 0,
-        bottom: 0,
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
+  const sidebarContent = (
+    <>
       <div
         className={`border-b px-4 py-4 sm:px-5 sm:py-5 ${
           isDark ? "border-zinc-800" : "border-gray-100"
         }`}
       >
         <div
-          className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}
+          className={`flex items-center ${collapsed && !isMobile ? "justify-center" : "gap-3"}`}
         >
           <div
             className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
@@ -118,7 +99,7 @@ const Sidebar = ({ collapsed }) => {
               style={{ fontSize: "22px" }}
             />
           </div>
-          {!collapsed && (
+          {(!collapsed || isMobile) && (
             <div className="min-w-0">
               <Text
                 className={`!mb-0 block text-[0.65rem] font-semibold uppercase leading-tight tracking-[0.12em] ${
@@ -140,7 +121,7 @@ const Sidebar = ({ collapsed }) => {
       </div>
 
       <div className="flex-1 overflow-auto px-2 py-4 sm:px-3">
-        {!collapsed && (
+        {(!collapsed || isMobile) && (
           <p
             className={`mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider ${
               isDark ? "text-zinc-500" : "text-zinc-400"
@@ -158,20 +139,27 @@ const Sidebar = ({ collapsed }) => {
             backgroundColor: "transparent",
           }}
           theme={isDark ? "dark" : "light"}
+          inlineCollapsed={!isMobile && collapsed}
+          onClick={() => {
+            if (isMobile) onMobileClose?.();
+          }}
         />
       </div>
 
       <div
         className={`border-t pb-4 pt-3 ${
-          collapsed ? "flex justify-center px-0" : "px-2 sm:px-3"
+          collapsed && !isMobile ? "flex justify-center px-0" : "px-2 sm:px-3"
         } ${isDark ? "border-zinc-800" : "border-gray-200/80"}`}
       >
         <Button
           type="text"
           icon={<LogoutOutlined className="text-base" />}
-          onClick={handleLogout}
+          onClick={() => {
+            handleLogout();
+            if (isMobile) onMobileClose?.();
+          }}
           className={
-            collapsed
+            collapsed && !isMobile
               ? `!inline-flex !size-11 !items-center !justify-center !gap-0 !p-0 rounded-lg font-medium transition-colors ${
                   isDark
                     ? "text-zinc-300 hover:!bg-zinc-800/80"
@@ -184,9 +172,36 @@ const Sidebar = ({ collapsed }) => {
                 }`
           }
         >
-          {!collapsed && <span className="ml-1">Log out</span>}
+          {(isMobile || !collapsed) && <span className="ml-1">Log out</span>}
         </Button>
       </div>
+    </>
+  );
+
+  return (
+    <>
+      {!isMobile ? (
+    <Sider
+      trigger={null}
+      collapsible
+      collapsed={collapsed}
+      collapsedWidth={80}
+      width={280}
+      className={`flex flex-col border-r shadow-[1px_0_0_0_rgba(0,0,0,0.04)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.06)] ${
+        isDark ? "!bg-zinc-950 border-zinc-800" : "!bg-white border-gray-200/80"
+      }`}
+      style={{
+        overflow: "hidden",
+        height: "100vh",
+        position: "fixed",
+        left: 0,
+        top: 0,
+        bottom: 0,
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      {sidebarContent}
 
       <style>{`
         .sidebar-menu .ant-menu-item {
@@ -317,6 +332,24 @@ const Sidebar = ({ collapsed }) => {
         }
       `}</style>
     </Sider>
+      ) : (
+        <Drawer
+          placement="left"
+          open={mobileOpen}
+          onClose={onMobileClose}
+          width={280}
+          closable={false}
+          bodyStyle={{ padding: 0, display: "flex", flexDirection: "column" }}
+          className={isDark ? "dark" : ""}
+        >
+          <div
+            className={`flex h-full flex-col ${isDark ? "bg-zinc-950" : "bg-white"}`}
+          >
+            {sidebarContent}
+          </div>
+        </Drawer>
+      )}
+    </>
   );
 };
 

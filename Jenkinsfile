@@ -37,7 +37,7 @@ pipeline {
             }
         }
 
-                stage('Copy env') {
+        stage('Copy env') {
             steps {
                 sshagent(credentials: ['pepadmin']) {
                     sh """
@@ -58,9 +58,7 @@ pipeline {
                             cd ${REMOTE_DIR} &&
                             npm install &&
                             cd server &&
-                            npm install &&
-                            npm run db:init &&
-                            npm run db:migrate
+                            npm install
                         '
                     """
                 }
@@ -107,15 +105,6 @@ pipeline {
                     """
                 }
             }
-        }
-    }
-
-    post {
-        success {
-            echo '✅ Deployment completed successfully'
-        }
-        failure {
-            echo '❌ Deployment failed'
         }
     }
 }

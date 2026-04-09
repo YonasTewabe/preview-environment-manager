@@ -126,7 +126,7 @@ const EnvManagement = () => {
     return (
       <div className="space-y-6 text-black dark:text-white">
         <div className="mb-6">
-          <h2 className="mb-0 text-3xl font-bold text-blue-900 dark:text-blue-400">
+          <h2 className="mb-0 text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-400">
             Env management
           </h2>
           <p className="font-bold text-gray-700 dark:text-gray-300">
@@ -364,8 +364,8 @@ const EnvManagement = () => {
             Actions to change the default profile.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button size="large" onClick={() => navigate("/projects")}>
+        <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
+          <Button size="large" className="w-full sm:w-auto" onClick={() => navigate("/projects")}>
             Go to Projects
           </Button>
         </div>
@@ -421,6 +421,7 @@ const EnvManagement = () => {
           locale={{
             emptyText: "No projects yet. Create a project under Projects.",
           }}
+          scroll={{ x: 900 }}
         />
       </Card>
 

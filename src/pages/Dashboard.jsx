@@ -27,6 +27,38 @@ function pickServices(payload) {
   return Array.isArray(list) ? list : [];
 }
 
+function normalizeBuildStatus(raw) {
+  const value = String(raw ?? "")
+    .trim()
+    .toLowerCase();
+  if (!value) return null;
+  if (["success", "successful", "passed", "completed"].includes(value)) {
+    return "success";
+  }
+  if (["failed", "failure", "error", "errored"].includes(value)) {
+    return "failed";
+  }
+  return null;
+}
+
+function countBuildOutcomes(items) {
+  return items.reduce(
+    (acc, item) => {
+      const status =
+        normalizeBuildStatus(item?.build_status) ??
+        normalizeBuildStatus(item?.buildStatus) ??
+        normalizeBuildStatus(item?.status) ??
+        normalizeBuildStatus(item?.last_build_status) ??
+        normalizeBuildStatus(item?.result);
+
+      if (status === "success") acc.success += 1;
+      if (status === "failed") acc.failed += 1;
+      return acc;
+    },
+    { success: 0, failed: 0 },
+  );
+}
+
 const Dashboard = () => {
   const { user } = useAuth();
   const { isDark } = useTheme();
@@ -86,12 +118,24 @@ const Dashboard = () => {
         (s) => !s.is_deleted,
       );
       const apiServices = pickServices(apiRes.data);
+      const allBuildItems = [...webServices, ...apiServices];
+      const computedOutcomes = countBuildOutcomes(allBuildItems);
+
+      const payloadTotalProjects = Number(statsPayload.totalProjects) || 0;
+      const payloadTotalNodes = Number(statsPayload.totalNodes) || 0;
+      const payloadSuccessfulBuilds = Number(statsPayload.successfulBuilds) || 0;
+      const payloadFailedBuilds = Number(statsPayload.failedBuilds) || 0;
 
       setStats({
-        totalProjects: Number(statsPayload.totalProjects) || 0,
-        totalNodes: Number(statsPayload.totalNodes) || 0,
-        successfulBuilds: Number(statsPayload.successfulBuilds) || 0,
-        failedBuilds: Number(statsPayload.failedBuilds) || 0,
+        totalProjects: payloadTotalProjects,
+        totalNodes: Math.max(payloadTotalNodes, allBuildItems.length),
+        // Prefer backend stats when present, but never undercount what we can
+        // prove from current service/node build statuses.
+        successfulBuilds: Math.max(
+          payloadSuccessfulBuilds,
+          computedOutcomes.success,
+        ),
+        failedBuilds: Math.max(payloadFailedBuilds, computedOutcomes.failed),
       });
 
       const recentBuildsList = [];
@@ -167,11 +211,11 @@ const Dashboard = () => {
       <div className="mb-6">
         <Title
           level={1}
-          className="!mb-2 !text-blue-900 dark:!text-blue-400 !font-bold"
+          className="!mb-1 !text-3xl sm:!text-4xl !text-blue-900 dark:!text-blue-400 !font-bold"
         >
           Dashboard
         </Title>
-        <Text className="mb-1 block text-lg font-bold text-black dark:text-white">
+        <Text className="mb-1 block text-base sm:text-lg font-bold text-black dark:text-white">
           Welcome back, {user?.first_name || user?.username || "there"}
         </Text>
       </div>
@@ -238,7 +282,7 @@ const Dashboard = () => {
                     ? `/projects/${build.projectId}/nodes/${build.nodeId}`
                     : null;
 
-                  const rowClass = `block rounded-lg border border-zinc-200/80 p-4 transition-all hover:shadow-md dark:border-zinc-800 ${isDark ? "dark:!bg-zinc-900" : "!bg-white"}`;
+                  const rowClass = `block rounded-lg border border-zinc-200/80 p-3 sm:p-4 transition-all hover:shadow-md dark:border-zinc-800 ${isDark ? "dark:!bg-zinc-900" : "!bg-white"}`;
                   const rowInner = (
                     <div className="flex min-w-0 flex-1 items-start gap-3">
                       <div className="min-w-0 flex-1">

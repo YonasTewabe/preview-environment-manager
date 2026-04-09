@@ -141,7 +141,7 @@ export function refreshStatsAfterMutation(req, res, next) {
 
   if (isMutation) {
     res.on("finish", () => {
-      if (res.statusCode >= 200 && res.statusCode < 400) {
+      if (res.statusCode >= 200 && res.statusCode < 500) {
         void refreshSystemStats().catch((error) => {
           console.error("Failed to refresh stats snapshot:", error);
         });
