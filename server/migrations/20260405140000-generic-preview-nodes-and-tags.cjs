@@ -33,6 +33,12 @@ async function tableExists(queryInterface, name) {
   return rows.length > 0;
 }
 
+async function columnExists(queryInterface, table, column) {
+  if (!(await tableExists(queryInterface, table))) return false;
+  const cols = await queryInterface.describeTable(table);
+  return Object.prototype.hasOwnProperty.call(cols, column);
+}
+
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface) {
@@ -110,27 +116,52 @@ module.exports = {
 
     // --- url_configs ---
     if (await tableExists(queryInterface, "url_configs")) {
-      await queryInterface.sequelize.query(
-        "ALTER TABLE `url_configs` CHANGE `frontnode_id` `web_node_id` INT NOT NULL",
+      const hasFrontNodeId = await columnExists(
+        queryInterface,
+        "url_configs",
+        "frontnode_id",
       );
+      const hasWebNodeId = await columnExists(
+        queryInterface,
+        "url_configs",
+        "web_node_id",
+      );
+      if (hasFrontNodeId && !hasWebNodeId) {
+        await queryInterface.sequelize.query(
+          "ALTER TABLE `url_configs` CHANGE `frontnode_id` `web_node_id` INT NOT NULL",
+        );
+      }
     }
 
     // --- Re-add FKs ---
-    await queryInterface.sequelize.query(`
-      ALTER TABLE \`branches\`
-      ADD CONSTRAINT \`branches_node_preview_api_fk\`
-      FOREIGN KEY (\`node_id\`) REFERENCES \`preview_nodes_api\` (\`id\`)
-      ON UPDATE CASCADE ON DELETE CASCADE
-    `);
+    if (
+      (await tableExists(queryInterface, "branches")) &&
+      (await tableExists(queryInterface, "preview_nodes_api"))
+    ) {
+      await queryInterface.sequelize.query(`
+        ALTER TABLE \`branches\`
+        ADD CONSTRAINT \`branches_node_preview_api_fk\`
+        FOREIGN KEY (\`node_id\`) REFERENCES \`preview_nodes_api\` (\`id\`)
+        ON UPDATE CASCADE ON DELETE CASCADE
+      `);
+    }
 
-    await queryInterface.sequelize.query(`
-      ALTER TABLE \`url_configs\`
-      ADD CONSTRAINT \`url_configs_web_node_fk\`
-      FOREIGN KEY (\`web_node_id\`) REFERENCES \`preview_nodes_web\` (\`id\`)
-      ON UPDATE CASCADE ON DELETE CASCADE
-    `);
+    if (
+      (await tableExists(queryInterface, "url_configs")) &&
+      (await tableExists(queryInterface, "preview_nodes_web"))
+    ) {
+      await queryInterface.sequelize.query(`
+        ALTER TABLE \`url_configs\`
+        ADD CONSTRAINT \`url_configs_web_node_fk\`
+        FOREIGN KEY (\`web_node_id\`) REFERENCES \`preview_nodes_web\` (\`id\`)
+        ON UPDATE CASCADE ON DELETE CASCADE
+      `);
+    }
 
-    if (await tableExists(queryInterface, "preview_node_web_env_vars")) {
+    if (
+      (await tableExists(queryInterface, "preview_node_web_env_vars")) &&
+      (await tableExists(queryInterface, "preview_nodes_web"))
+    ) {
       await queryInterface.sequelize.query(`
         ALTER TABLE \`preview_node_web_env_vars\`
         ADD CONSTRAINT \`preview_web_env_vars_node_fk\`
@@ -139,7 +170,10 @@ module.exports = {
       `);
     }
 
-    if (await tableExists(queryInterface, "preview_node_web_builds")) {
+    if (
+      (await tableExists(queryInterface, "preview_node_web_builds")) &&
+      (await tableExists(queryInterface, "preview_nodes_web"))
+    ) {
       await queryInterface.sequelize.query(`
         ALTER TABLE \`preview_node_web_builds\`
         ADD CONSTRAINT \`preview_web_builds_node_fk\`

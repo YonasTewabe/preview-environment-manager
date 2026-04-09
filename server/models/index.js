@@ -7,6 +7,7 @@ import User from './User.js';
 import Environment from './Environment.js';
 import ProjectEnvProfile from './ProjectEnvProfile.js';
 import Stats from "./Stats.js";
+import Configuration from "./Configuration.js";
 
 let associationsInitialized = false;
 const initAssociations = () => {
@@ -82,6 +83,7 @@ export {
   Environment,
   ProjectEnvProfile,
   Stats,
+  Configuration,
   sequelize,
   syncDatabase,
   initAssociations,
@@ -108,6 +110,7 @@ export default {
   Environment,
   ProjectEnvProfile,
   Stats,
+  Configuration,
   sequelize,
   syncDatabase,
   testConnection,

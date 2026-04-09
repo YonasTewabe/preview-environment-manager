@@ -1,14 +1,43 @@
 'use strict';
 
+async function tableExists(queryInterface, table) {
+  const [rows] = await queryInterface.sequelize.query(
+    `SELECT TABLE_NAME FROM information_schema.TABLES
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+    { replacements: [table] },
+  );
+  return rows.length > 0;
+}
+
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up(queryInterface, Sequelize) {
-    const tableExists = await queryInterface.tableExists('url_configs');
-    if (tableExists) {
+    const urlConfigsExists = await tableExists(queryInterface, 'url_configs');
+    if (urlConfigsExists) {
       console.log('Table url_configs already exists, skipping creation');
       return;
     }
-    
+
+    const webRefTable = (await tableExists(queryInterface, "nodes"))
+      ? "nodes"
+      : (await tableExists(queryInterface, "preview_nodes_web"))
+        ? "preview_nodes_web"
+        : (await tableExists(queryInterface, "frontend_nodes"))
+          ? "frontend_nodes"
+          : null;
+    const frontnodeCol = {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+    };
+    if (webRefTable) {
+      frontnodeCol.references = {
+        model: webRefTable,
+        key: "id",
+      };
+      frontnodeCol.onUpdate = "CASCADE";
+      frontnodeCol.onDelete = "CASCADE";
+    }
+
     await queryInterface.createTable('url_configs', {
       id: {
         allowNull: false,
@@ -28,16 +57,7 @@ module.exports = {
         type: Sequelize.TEXT,
         allowNull: true
       },
-      frontnode_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'frontend_nodes',
-          key: 'id'
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE'
-      },
+      frontnode_id: frontnodeCol,
       service_type: {
         type: Sequelize.ENUM('api', 'service', 'database', 'cache', 'queue', 'storage', 'other'),
         defaultValue: 'api'

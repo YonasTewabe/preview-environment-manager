@@ -1,0 +1,157 @@
+import { Op } from "sequelize";
+import { Configuration } from "../models/index.js";
+
+const DEFINITIONS = {
+  jenkins_base_url: {
+    category: "jenkins",
+    isSecret: false,
+    envFallback: "JENKINS_BASE_URL",
+    required: true,
+  },
+  jenkins_user: {
+    category: "jenkins",
+    isSecret: false,
+    envFallback: "JENKINS_USER",
+    required: true,
+  },
+  jenkins_password: {
+    category: "jenkins",
+    isSecret: true,
+    envFallback: "JENKINS_PASSWORD",
+    required: true,
+  },
+  jenkins_job_preview: {
+    category: "jenkins",
+    isSecret: false,
+    envFallback: "JENKINS_JOB_PREVIEW",
+    required: true,
+  },
+  jenkins_job_delete_domain: {
+    category: "jenkins",
+    isSecret: false,
+    envFallback: "JENKINS_JOB_DELETE_DOMAIN",
+    required: true,
+  },
+  github_api_base: {
+    category: "github",
+    isSecret: false,
+    envFallback: "GITHUB_API_BASE",
+    required: true,
+    defaultValue: "https://api.github.com",
+  },
+  github_org: {
+    category: "github",
+    isSecret: false,
+    envFallback: "GITHUB_ORG",
+    required: true,
+  },
+  github_token: {
+    category: "github",
+    isSecret: true,
+    envFallback: "GITHUB_TOKEN",
+    required: true,
+  },
+};
+
+function normalizeValue(v) {
+  if (v == null) return "";
+  return String(v).trim();
+}
+
+function trimBase(url) {
+  return String(url || "").replace(/\/+$/, "");
+}
+
+async function loadKeys(keys) {
+  const rows = await Configuration.findAll({
+    where: { key_name: { [Op.in]: keys } },
+  });
+  const map = {};
+  for (const row of rows) {
+    map[row.key_name] = row.value_text ?? "";
+  }
+  return map;
+}
+
+function valueWithFallback(key, dbMap) {
+  const spec = DEFINITIONS[key];
+  const dbValue = normalizeValue(dbMap[key]);
+  if (dbValue) return dbValue;
+  const fromEnv = normalizeValue(process.env[spec.envFallback]);
+  if (fromEnv) return fromEnv;
+  return normalizeValue(spec.defaultValue);
+}
+
+async function getSettingsByCategory(
+  category,
+  { includeSecrets = false } = {},
+) {
+  const keys = Object.keys(DEFINITIONS).filter(
+    (k) => DEFINITIONS[k].category === category,
+  );
+  const dbMap = await loadKeys(keys);
+  return keys.map((key) => {
+    const def = DEFINITIONS[key];
+    const value = valueWithFallback(key, dbMap);
+    return {
+      key,
+      category: def.category,
+      isSecret: def.isSecret,
+      value: includeSecrets || !def.isSecret ? value : value ? "********" : "",
+      hasValue: Boolean(value),
+      required: Boolean(def.required),
+    };
+  });
+}
+
+async function upsertSettings(inputPairs = []) {
+  for (const pair of inputPairs) {
+    const key = String(pair?.key || "").trim();
+    if (!DEFINITIONS[key]) continue;
+    const spec = DEFINITIONS[key];
+    const value = pair?.value == null ? "" : String(pair.value);
+    if (spec.isSecret && value.trim() === "") {
+      // Keep existing secret when UI submits an empty masked field.
+      continue;
+    }
+    await Configuration.upsert({
+      key_name: key,
+      value_text: value,
+      category: spec.category,
+      is_secret: spec.isSecret,
+    });
+  }
+}
+
+async function getJenkinsConfig() {
+  const keys = Object.keys(DEFINITIONS).filter((k) => k.startsWith("jenkins_"));
+  const dbMap = await loadKeys(keys);
+  const baseUrl = trimBase(valueWithFallback("jenkins_base_url", dbMap));
+  return {
+    baseUrl,
+    user: valueWithFallback("jenkins_user", dbMap),
+    password: valueWithFallback("jenkins_password", dbMap),
+    jobPreview: valueWithFallback("jenkins_job_preview", dbMap),
+    jobDeleteDomain: valueWithFallback("jenkins_job_delete_domain", dbMap),
+    triggerToken: valueWithFallback("jenkins_trigger_token", dbMap) || "domain",
+  };
+}
+
+async function getGitHubConfig() {
+  const keys = Object.keys(DEFINITIONS).filter((k) => k.startsWith("github_"));
+  const dbMap = await loadKeys(keys);
+  return {
+    apiBase:
+      trimBase(valueWithFallback("github_api_base", dbMap)) ||
+      "https://api.github.com",
+    org: valueWithFallback("github_org", dbMap),
+    token: valueWithFallback("github_token", dbMap),
+  };
+}
+
+export default {
+  getJenkinsConfig,
+  getGitHubConfig,
+  getSettingsByCategory,
+  upsertSettings,
+};

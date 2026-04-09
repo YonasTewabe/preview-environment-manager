@@ -87,15 +87,14 @@ export default function ServiceNodeModal({
             disabled={isEdit || loadingGithubBranches}
             showSearch
             filterOption={(input, option) => {
-              const optionText =
-                typeof option.children === "string"
-                  ? option.children
-                  : String(option.children);
-              return optionText.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+              const branchName = String(option?.value ?? "");
+              return branchName
+                .toLowerCase()
+                .includes(String(input ?? "").toLowerCase());
             }}
           >
             {githubBranches.map((branch, index) => (
-              <Option key={`${branch}-${index}`} value={branch}>
+              <Option key={branch} value={branch}>
                 {index + 1}. {branch}
               </Option>
             ))}

@@ -20,6 +20,7 @@ import MyProjects from './components/Projects/MyProjects';
 import ProjectDetail from './components/Projects/ProjectDetail';
 import ProjectEnvironments from './components/Projects/ProjectEnvironments';
 import EnvManagement from './pages/EnvManagement';
+import SystemSettings from './pages/SystemSettings';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -148,6 +149,16 @@ function App() {
                     </MainLayout>
                   </ProtectedRoute>
                 } 
+              />
+              <Route
+                path="/system-settings"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <SystemSettings />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
               />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

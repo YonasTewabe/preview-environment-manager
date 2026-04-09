@@ -7,7 +7,6 @@ const { Option } = Select;
 export default function BranchSelector({ repo, branch, setBranch }) {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
-  const org = import.meta.env.VITE_GITHUB_OWNER;
 
   useEffect(() => {
     if (!repo) {
@@ -18,7 +17,7 @@ export default function BranchSelector({ repo, branch, setBranch }) {
     async function fetchBranches() {
       setLoading(true);
       try {
-        const res = await fetch(`/api/github/branches?org=${org}&repo=${repo}`);
+        const res = await fetch(`/api/github/branches?repo=${encodeURIComponent(repo)}`);
         if (!res.ok) {
           throw new Error(`HTTP error! status: ${res.status}`);
         }
@@ -33,7 +32,7 @@ export default function BranchSelector({ repo, branch, setBranch }) {
     }
 
     fetchBranches();
-  }, [repo, org]);
+  }, [repo]);
 
   return (
     <div style={{ marginTop: 16 }}>

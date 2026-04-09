@@ -1,13 +1,25 @@
 import axios from "axios";
-import {
-  JENKINS_USER,
-  JENKINS_PASSWORD,
-  JOB_DELETE_DOMAIN,
-  jenkinsBuildWithParamsUrl,
-  jenkinsQueueItemUrl,
-  jenkinsBuildApiUrl,
-  jenkinsArtifactUrl,
-} from "../config/jenkinsServer.js";
+import configurationService from "./configurationService.js";
+
+function trimBase(url) {
+  return String(url || "").replace(/\/+$/, "");
+}
+
+function jenkinsBuildWithParamsUrl(baseUrl, jobName) {
+  return `${trimBase(baseUrl)}/job/${jobName}/buildWithParameters`;
+}
+
+function jenkinsQueueItemUrl(baseUrl, queueId) {
+  return `${trimBase(baseUrl)}/queue/item/${queueId}/api/json`;
+}
+
+function jenkinsBuildApiUrl(baseUrl, jobName, buildNumber) {
+  return `${trimBase(baseUrl)}/job/${jobName}/${buildNumber}/api/json`;
+}
+
+function jenkinsArtifactUrl(baseUrl, jobName, buildNumber, relativePath) {
+  return `${trimBase(baseUrl)}/job/${jobName}/${buildNumber}/artifact/${relativePath}`;
+}
 
 /**
  * Run the Jenkins delete-domain job to completion (same behavior as POST /api/jenkins/delete-preview-job).
@@ -22,7 +34,11 @@ export async function deletePreviewDomainViaJenkins(DOMAIN_NAME) {
     };
   }
 
-  const jenkinsUrl = jenkinsBuildWithParamsUrl(JOB_DELETE_DOMAIN);
+  const config = await configurationService.getJenkinsConfig();
+  const jenkinsUrl = jenkinsBuildWithParamsUrl(
+    config.baseUrl,
+    config.jobDeleteDomain,
+  );
   try {
     const response = await axios.post(
       `${jenkinsUrl}?token=domain&DOMAIN_NAME=${DOMAIN_NAME}`,
@@ -30,7 +46,7 @@ export async function deletePreviewDomainViaJenkins(DOMAIN_NAME) {
       {
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Basic ${Buffer.from(`${JENKINS_USER}:${JENKINS_PASSWORD}`).toString("base64")}`,
+          Authorization: `Basic ${Buffer.from(`${config.user}:${config.password}`).toString("base64")}`,
         },
         timeout: 30000,
       },
@@ -54,12 +70,15 @@ export async function deletePreviewDomainViaJenkins(DOMAIN_NAME) {
     let buildNumber = null;
 
     while (!buildNumber) {
-      const queueResponse = await axios.get(jenkinsQueueItemUrl(queueId), {
+      const queueResponse = await axios.get(
+        jenkinsQueueItemUrl(config.baseUrl, queueId),
+        {
         auth: {
-          username: JENKINS_USER,
-          password: JENKINS_PASSWORD,
+          username: config.user,
+          password: config.password,
         },
-      });
+        },
+      );
 
       const queueData = queueResponse.data;
       if (queueData.executable) {
@@ -75,11 +94,11 @@ export async function deletePreviewDomainViaJenkins(DOMAIN_NAME) {
 
     while (!buildComplete) {
       const buildResponse = await axios.get(
-        jenkinsBuildApiUrl(JOB_DELETE_DOMAIN, buildNumber),
+        jenkinsBuildApiUrl(config.baseUrl, config.jobDeleteDomain, buildNumber),
         {
           auth: {
-            username: JENKINS_USER,
-            password: JENKINS_PASSWORD,
+            username: config.user,
+            password: config.password,
           },
         },
       );
@@ -109,11 +128,16 @@ export async function deletePreviewDomainViaJenkins(DOMAIN_NAME) {
     if (artifactFilePath) {
       try {
         const domainOutput = await axios.get(
-          jenkinsArtifactUrl(JOB_DELETE_DOMAIN, buildNumber, artifactFilePath),
+          jenkinsArtifactUrl(
+            config.baseUrl,
+            config.jobDeleteDomain,
+            buildNumber,
+            artifactFilePath,
+          ),
           {
             auth: {
-              username: JENKINS_USER,
-              password: JENKINS_PASSWORD,
+              username: config.user,
+              password: config.password,
             },
           },
         );

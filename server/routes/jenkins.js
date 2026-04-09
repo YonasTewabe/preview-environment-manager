@@ -4,20 +4,9 @@ import { Op } from "sequelize";
 import urlConfigService from "../services/urlConfigService.js";
 import { sequelize } from "../config/database.js";
 import { Node, NodeBuild } from "../models/index.js";
-import {
-  JENKINS_BASE,
-  JENKINS_USER,
-  JENKINS_PASSWORD,
-  JOB_PREVIEW,
-  JOB_DELETE_DOMAIN,
-  jenkinsApiJsonUrl,
-  jenkinsBuildWithParamsUrl,
-  jenkinsQueueItemUrl,
-  jenkinsBuildApiUrl,
-  jenkinsArtifactUrl,
-} from "../config/jenkinsServer.js";
 import { deletePreviewDomainViaJenkins } from "../services/jenkinsDeletePreviewDomain.js";
 import { refreshStatsAfterMutation } from "../services/statsService.js";
+import configurationService from "../services/configurationService.js";
 
 /** Must match Jenkins job `parameters { string… }` — only these are sent to buildWithParameters. */
 const JENKINS_PREVIEW_JOB_PARAM_NAMES = [
@@ -56,7 +45,29 @@ function buildPreviewJobJenkinsForm({
 const router = express.Router();
 router.use(refreshStatsAfterMutation);
 
-const JENKINS_TRIGGER_TOKEN = process.env.JENKINS_TRIGGER_TOKEN || "domain";
+function trimBase(url) {
+  return String(url || "").replace(/\/+$/, "");
+}
+
+function jenkinsApiJsonUrl(baseUrl) {
+  return `${trimBase(baseUrl)}/api/json`;
+}
+
+function jenkinsBuildWithParamsUrl(baseUrl, jobName) {
+  return `${trimBase(baseUrl)}/job/${jobName}/buildWithParameters`;
+}
+
+function jenkinsQueueItemUrl(baseUrl, queueId) {
+  return `${trimBase(baseUrl)}/queue/item/${queueId}/api/json`;
+}
+
+function jenkinsBuildApiUrl(baseUrl, jobName, buildNumber) {
+  return `${trimBase(baseUrl)}/job/${jobName}/${buildNumber}/api/json`;
+}
+
+function jenkinsArtifactUrl(baseUrl, jobName, buildNumber, relativePath) {
+  return `${trimBase(baseUrl)}/job/${jobName}/${buildNumber}/artifact/${relativePath}`;
+}
 
 function normalizeFrontendBuildStatus(jenkinsOrInternal) {
   if (jenkinsOrInternal === "SUCCESS") return "success";
@@ -297,13 +308,13 @@ function urlConfigsFromEnvJsonArray(envJsonArray) {
     });
 }
 
-/** Jenkins Location header may be relative to JENKINS_BASE. */
-function resolveJenkinsLocation(location) {
+/** Jenkins Location header may be relative to Jenkins base URL. */
+function resolveJenkinsLocation(location, baseUrl) {
   if (location == null) return null;
   const s = Array.isArray(location) ? location[0] : String(location);
   if (!s) return null;
   if (/^https?:\/\//i.test(s)) return s;
-  const base = String(JENKINS_BASE || "").replace(/\/+$/, "");
+  const base = trimBase(baseUrl);
   return `${base}${s.startsWith("/") ? s : `/${s}`}`;
 }
 
@@ -354,10 +365,11 @@ router.get("/test", (req, res) => {
 // Test Jenkins connectivity
 router.get("/test-connection", async (req, res) => {
   try {
-    const response = await axios.get(jenkinsApiJsonUrl(), {
+    const config = await configurationService.getJenkinsConfig();
+    const response = await axios.get(jenkinsApiJsonUrl(config.baseUrl), {
       auth: {
-        username: JENKINS_USER,
-        password: JENKINS_PASSWORD,
+        username: config.user,
+        password: config.password,
       },
       timeout: 10000,
     });
@@ -385,6 +397,7 @@ router.get("/test-connection", async (req, res) => {
  */
 async function handleUnifiedPreviewBuild(req, res) {
   try {
+    const config = await configurationService.getJenkinsConfig();
     let TAG = normalizeBuildTag(req.body.TAG);
     if (!TAG) TAG = "backend";
 
@@ -431,8 +444,11 @@ async function handleUnifiedPreviewBuild(req, res) {
       });
     }
 
-    const jenkinsUrl = jenkinsBuildWithParamsUrl(JOB_PREVIEW);
-    const triggerUrl = `${jenkinsUrl}?token=${encodeURIComponent(JENKINS_TRIGGER_TOKEN)}`;
+    const jenkinsUrl = jenkinsBuildWithParamsUrl(
+      config.baseUrl,
+      config.jobPreview,
+    );
+    const triggerUrl = `${jenkinsUrl}?token=${encodeURIComponent(config.triggerToken)}`;
 
     const jenkinsForm = buildPreviewJobJenkinsForm({
       tag: TAG,
@@ -445,8 +461,8 @@ async function handleUnifiedPreviewBuild(req, res) {
 
     const triggerResp = await axios.post(triggerUrl, jenkinsForm.toString(), {
       auth: {
-        username: JENKINS_USER,
-        password: JENKINS_PASSWORD,
+        username: config.user,
+        password: config.password,
       },
       headers: {
         "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
@@ -459,7 +475,7 @@ async function handleUnifiedPreviewBuild(req, res) {
 
     if (triggerResp.status === 201 || triggerResp.status === 200) {
       const loc = triggerResp.headers?.location;
-      const queueUrl = resolveJenkinsLocation(loc);
+      const queueUrl = resolveJenkinsLocation(loc, config.baseUrl);
       if (!queueUrl || typeof queueUrl !== "string") {
         return res.status(502).json({
           success: false,
@@ -474,12 +490,15 @@ async function handleUnifiedPreviewBuild(req, res) {
       let buildNumber = null;
 
       while (!buildNumber) {
-        const queueResponse = await axios.get(jenkinsQueueItemUrl(queueId), {
+        const queueResponse = await axios.get(
+          jenkinsQueueItemUrl(config.baseUrl, queueId),
+          {
           auth: {
-            username: JENKINS_USER,
-            password: JENKINS_PASSWORD,
+            username: config.user,
+            password: config.password,
           },
-        });
+          },
+        );
 
         const queueData = queueResponse.data;
         if (queueData.executable) {
@@ -495,11 +514,11 @@ async function handleUnifiedPreviewBuild(req, res) {
 
       while (!buildComplete) {
         const buildResponse = await axios.get(
-          jenkinsBuildApiUrl(JOB_PREVIEW, buildNumber),
+          jenkinsBuildApiUrl(config.baseUrl, config.jobPreview, buildNumber),
           {
             auth: {
-              username: JENKINS_USER,
-              password: JENKINS_PASSWORD,
+              username: config.user,
+              password: config.password,
             },
           },
         );
@@ -555,11 +574,16 @@ async function handleUnifiedPreviewBuild(req, res) {
       }
 
       const domainOutput = await axios.get(
-        jenkinsArtifactUrl(JOB_PREVIEW, buildNumber, artifactFilePath),
+        jenkinsArtifactUrl(
+          config.baseUrl,
+          config.jobPreview,
+          buildNumber,
+          artifactFilePath,
+        ),
         {
           auth: {
-            username: JENKINS_USER,
-            password: JENKINS_PASSWORD,
+            username: config.user,
+            password: config.password,
           },
         },
       );

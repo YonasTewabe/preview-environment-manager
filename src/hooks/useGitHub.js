@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { message } from "antd";
+import { appApiBase } from "../config/jenkins";
 
 export function useGitHub() {
   const [githubBranches, setGithubBranches] = useState([]);
@@ -9,59 +10,26 @@ export function useGitHub() {
   const fetchGithubBranches = useCallback(async (repoUrl, repo_name) => {
     setLoadingGithubBranches(true);
     try {
-      // Extract repo name from the full repo URL
+      const normalizedRepo = String(repoUrl || "")
+        .replace("https://github.com/", "")
+        .replace(".git", "");
       const repoName = repo_name
         ? repo_name
-        : repoUrl.replace("https://github.com/", "").replace(".git", "");
-      let allBranches = [];
-      let page = 1;
-      let hasMorePages = true;
-      let fetchFailed = false;
+        : normalizedRepo.includes("/")
+          ? normalizedRepo.split("/").slice(1).join("/")
+          : normalizedRepo;
 
-      while (hasMorePages) {
-        const response = await fetch(
-          `${import.meta.env.VITE_GITHUB_API_BASE}/repos/${import.meta.env.VITE_GITHUB_ORG}/${repoName}/branches?per_page=100&page=${page}`,
-          {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${import.meta.env.VITE_GITHUB_TOKEN}`,
-              Accept: "application/vnd.github.v3+json",
-              "User-Agent": "Preview-Builder-App",
-            },
-          },
-        );
-
-        if (response.ok) {
-          const branchesData = await response.json();
-
-          if (branchesData.length === 0) {
-            hasMorePages = false;
-          } else {
-            allBranches = [...allBranches, ...branchesData];
-            page++;
-
-            // Check if we got less than 100 branches (indicating last page)
-            if (branchesData.length < 100) {
-              hasMorePages = false;
-            }
-          }
-        } else {
-          fetchFailed = true;
-          const errorText = await response.text();
-          console.error("GitHub API Error Response:", errorText);
-          message.error(
-            `Failed to fetch branches from GitHub: ${response.status} ${response.statusText}`,
-          );
-          hasMorePages = false;
-        }
+      const response = await fetch(
+        `${appApiBase()}github/branches?repo=${encodeURIComponent(repoName)}`,
+      );
+      if (!response.ok) {
+        throw new Error(`Failed to fetch branches: ${response.status}`);
       }
-
-      const branchNames = allBranches.map((branch) => branch.name);
-      if (!fetchFailed) {
-        setGithubBranches(branchNames);
-      } else {
-        setGithubBranches([]);
-      }
+      const branchesData = await response.json();
+      const branchNames = Array.isArray(branchesData)
+        ? branchesData.map((branch) => branch.name)
+        : [];
+      setGithubBranches(branchNames);
     } catch (error) {
       console.error("Error fetching branches:", error);
       message.error(`Error fetching branches from GitHub: ${error.message}`);

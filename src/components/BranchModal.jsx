@@ -39,15 +39,15 @@ export default function BranchModal({
             disabled={loadingGithubBranches}
             showSearch
             filterOption={(input, option) => {
-              const optionText = typeof option.children === 'string' 
-                ? option.children 
-                : String(option.children);
-              return optionText.toLowerCase().indexOf(input.toLowerCase()) >= 0;
+              const branchName = String(option?.value ?? "");
+              return branchName
+                .toLowerCase()
+                .includes(String(input ?? "").toLowerCase());
             }}
           >
-            {githubBranches.map((branch,index) => (
-              <Option key={index} value={branch}>
-               {index+1} {branch}
+            {githubBranches.map((branch, index) => (
+              <Option key={branch} value={branch}>
+               {index + 1}. {branch}
               </Option>
             ))}
           </Select>

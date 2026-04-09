@@ -1,13 +1,43 @@
 'use strict';
 
+async function tableExists(queryInterface, table) {
+  const [rows] = await queryInterface.sequelize.query(
+    `SELECT TABLE_NAME FROM information_schema.TABLES
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+    { replacements: [table] },
+  );
+  return rows.length > 0;
+}
+
 module.exports = {
   async up(queryInterface, Sequelize) {
-    const tableExists = await queryInterface.tableExists('branches');
-    if (tableExists) {
+    const branchesExists = await tableExists(queryInterface, 'branches');
+    if (branchesExists) {
       console.log('Table branches already exists, skipping creation');
       return;
     }
-    
+
+    const nodeRefTable = (await tableExists(queryInterface, "nodes"))
+      ? "nodes"
+      : (await tableExists(queryInterface, "preview_nodes_api"))
+        ? "preview_nodes_api"
+        : (await tableExists(queryInterface, "backend_nodes"))
+          ? "backend_nodes"
+          : null;
+
+    const nodeIdColumn = {
+      type: Sequelize.INTEGER,
+      allowNull: false,
+    };
+    if (nodeRefTable) {
+      nodeIdColumn.references = {
+        model: nodeRefTable,
+        key: "id",
+      };
+      nodeIdColumn.onUpdate = "CASCADE";
+      nodeIdColumn.onDelete = "CASCADE";
+    }
+
     await queryInterface.createTable('branches', {
       id: {
         type: Sequelize.INTEGER,
@@ -78,16 +108,7 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL',
       },
-      node_id: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'backend_nodes',
-          key: 'id',
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'CASCADE',
-      },
+      node_id: nodeIdColumn,
     });
 
     // Add indexes

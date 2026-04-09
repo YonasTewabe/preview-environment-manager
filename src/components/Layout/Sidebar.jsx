@@ -5,6 +5,7 @@ import {
   CloudOutlined,
   TeamOutlined,
   LogoutOutlined,
+  SettingOutlined,
 } from "@ant-design/icons";
 import { FaCodeBranch } from "react-icons/fa6";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -32,6 +33,7 @@ const Sidebar = ({ collapsed }) => {
     if (path.startsWith("/projects")) return ["/projects"];
     if (path.startsWith("/environments")) return ["/environments"];
     if (path.startsWith("/users")) return ["/users"];
+    if (path.startsWith("/system-settings")) return ["/system-settings"];
     return [];
   };
 
@@ -59,6 +61,12 @@ const Sidebar = ({ collapsed }) => {
       icon: <TeamOutlined style={{ fontSize: "18px" }} />,
       label: "User management",
       onClick: () => navigate("/users"),
+    },
+    {
+      key: "/system-settings",
+      icon: <SettingOutlined style={{ fontSize: "18px" }} />,
+      label: "System settings",
+      onClick: () => navigate("/system-settings"),
     },
   ];
   return (

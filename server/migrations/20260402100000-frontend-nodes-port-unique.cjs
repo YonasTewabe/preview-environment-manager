@@ -1,9 +1,25 @@
 "use strict";
 
+async function tableExists(queryInterface, table) {
+  const [rows] = await queryInterface.sequelize.query(
+    `SELECT TABLE_NAME FROM information_schema.TABLES
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ?`,
+    { replacements: [table] },
+  );
+  return rows.length > 0;
+}
+
 /** One preview port per frontend node; multiple NULL allowed (MySQL). */
 module.exports = {
   async up(queryInterface) {
-    const table = "frontend_nodes";
+    const table = (await tableExists(queryInterface, "frontend_nodes"))
+      ? "frontend_nodes"
+      : (await tableExists(queryInterface, "preview_nodes_web"))
+        ? "preview_nodes_web"
+        : (await tableExists(queryInterface, "nodes"))
+          ? "nodes"
+          : null;
+    if (!table) return;
     const indexName = "frontend_nodes_port_unique";
     const indexes = await queryInterface.showIndex(table);
     if (indexes.some((idx) => idx.name === indexName)) {
@@ -33,7 +49,14 @@ module.exports = {
   },
 
   async down(queryInterface) {
-    const table = "frontend_nodes";
+    const table = (await tableExists(queryInterface, "frontend_nodes"))
+      ? "frontend_nodes"
+      : (await tableExists(queryInterface, "preview_nodes_web"))
+        ? "preview_nodes_web"
+        : (await tableExists(queryInterface, "nodes"))
+          ? "nodes"
+          : null;
+    if (!table) return;
     const indexName = "frontend_nodes_port_unique";
     const indexes = await queryInterface.showIndex(table);
     if (!indexes.some((idx) => idx.name === indexName)) {

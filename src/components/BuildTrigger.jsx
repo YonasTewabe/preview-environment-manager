@@ -10,7 +10,6 @@ export default function BuildTrigger({
   setPrUrl,
 }) {
   const [loading, setLoading] = useState(false);
-  const owner = import.meta.env.VITE_GITHUB_OWNER;
 
 
   const handleCreatePR = async () => {
@@ -25,7 +24,7 @@ export default function BuildTrigger({
       const res = await fetch("/api/github/create-pr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ owner, repo, branch }),
+        body: JSON.stringify({ repo, branch }),
       });
 
       const data = await res.json();
