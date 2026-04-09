@@ -205,8 +205,7 @@ const ProjectDetail = () => {
     String(serverDefaultProfileId ?? "");
 
   const saveDefaultProfile = async () => {
-    const chosen =
-      draftDefaultProfileId ?? serverDefaultProfileId ?? undefined;
+    const chosen = draftDefaultProfileId ?? serverDefaultProfileId ?? undefined;
     if (chosen == null || chosen === "") return;
     if (String(chosen) === String(serverDefaultProfileId ?? "")) return;
     setSettingDefaultProfile(true);
@@ -422,9 +421,7 @@ const ProjectDetail = () => {
                 <Button
                   type="primary"
                   loading={settingDefaultProfile}
-                  disabled={
-                    !defaultProfileDirty || settingDefaultProfile
-                  }
+                  disabled={!defaultProfileDirty || settingDefaultProfile}
                   onClick={() => void saveDefaultProfile()}
                 >
                   Save default
@@ -443,7 +440,7 @@ const ProjectDetail = () => {
               backgroundColor: "#f5f5f5",
               borderRadius: "4px",
               minHeight: "2.5em",
-              maxHeight: "calc(13px * 1.5 * 10 + 24px)",
+              maxHeight: "calc(13px * 1.5 * 6 + 24px)",
               overflowY: "auto",
               border: "1px solid #d9d9d9",
             }}

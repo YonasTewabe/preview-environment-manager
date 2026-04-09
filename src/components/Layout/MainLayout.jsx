@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useLayoutEffect } from "react";
 import { Layout, Button, Space, Dropdown, Avatar, Tooltip } from "antd";
 import {
   MoonOutlined,
@@ -12,7 +12,7 @@ import {
 import Sidebar from "./Sidebar";
 import { useTheme } from "../../contexts/ThemeContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const { Header, Content } = Layout;
 
@@ -25,6 +25,13 @@ const MainLayout = ({ children }) => {
   const { isDark, toggleTheme } = useTheme();
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const mainScrollRef = useRef(null);
+
+  useLayoutEffect(() => {
+    mainScrollRef.current?.scrollTo(0, 0);
+    window.scrollTo(0, 0);
+  }, [location.pathname, location.search]);
 
   const handleLogout = () => {
     logout();
@@ -36,14 +43,6 @@ const MainLayout = ({ children }) => {
       key: "profile",
       icon: <UserOutlined />,
       label: "Profile",
-      onClick: () => {
-        navigate("/profile");
-      },
-    },
-    {
-      key: "settings",
-      icon: <SettingOutlined />,
-      label: "Settings",
       onClick: () => {
         navigate("/profile");
       },
@@ -131,11 +130,14 @@ const MainLayout = ({ children }) => {
           </div>
         </Header>
 
-        {/* Content */}
-        <Content
-          className={`flex-1 min-h-0 overflow-y-auto p-6 ${isDark ? "bg-neutral-950" : "bg-[#f5f5f5]"}`}
-        >
-          <div className="text-zinc-900 dark:text-zinc-50">{children}</div>
+        {/* Content — inner div is the scroll container so we can reset scroll on navigation */}
+        <Content className="flex min-h-0 flex-1 flex-col p-0">
+          <div
+            ref={mainScrollRef}
+            className={`min-h-0 flex-1 overflow-y-auto p-6 ${isDark ? "bg-neutral-950" : "bg-[#f5f5f5]"}`}
+          >
+            <div className="text-zinc-900 dark:text-zinc-50">{children}</div>
+          </div>
         </Content>
       </Layout>
     </Layout>

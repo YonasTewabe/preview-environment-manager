@@ -94,8 +94,4 @@ export function scheduleStalePreviewNodeCleanup() {
       console.error("[stale-preview-cleanup] Scheduled run failed:", err);
     });
   });
-
-  console.warn(
-    `📅 Stale preview node cleanup cron: "${schedule}" (STALE_PREVIEW_NODE_DAYS=${process.env.STALE_PREVIEW_NODE_DAYS ?? "5"}, Jenkins only — DB unchanged)`,
-  );
 }

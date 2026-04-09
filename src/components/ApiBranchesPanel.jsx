@@ -79,9 +79,7 @@ export default function ApiBranchesPanel({
             ["nodeBuildHistory", nodeKey],
           ]
         : []),
-      ...(projectKey != null
-        ? [["previewServicesByProject", projectKey]]
-        : []),
+      ...(projectKey != null ? [["previewServicesByProject", projectKey]] : []),
       ["previewServicesByProject"],
       ["previewServicesCatalog"],
       ["previewNodesByProject"],
@@ -180,8 +178,7 @@ export default function ApiBranchesPanel({
                   jenkinsData.jenkinsBuildNumber ?? jenkinsData.buildNumber,
                 build_result: jenkinsData.result || "success",
                 preview_link: jenkinsData.artifactData?.url,
-                jenkins_job_url:
-                  jenkinsData.jobUrl || previewJobFolder,
+                jenkins_job_url: jenkinsData.jobUrl || previewJobFolder,
               };
               await updateBranch.mutateAsync({
                 id: createdBranch.id,
@@ -334,8 +331,7 @@ export default function ApiBranchesPanel({
                 jenkinsData.jenkinsBuildNumber ?? jenkinsData.buildNumber,
               build_result: jenkinsData.result || "success",
               preview_link: jenkinsData.artifactData?.url,
-              jenkins_job_url:
-                jenkinsData.jobUrl || previewJobFolder,
+              jenkins_job_url: jenkinsData.jobUrl || previewJobFolder,
             };
             await updateBranch.mutateAsync({
               id: branchId,

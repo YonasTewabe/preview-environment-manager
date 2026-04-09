@@ -281,7 +281,7 @@ const EnvManagement = () => {
     {
       title: "Actions",
       key: "actions",
-      width: 400,
+      width: 350,
       align: "left",
       render: (_, record) => {
         const profs = profilesFor(record);
@@ -355,9 +355,8 @@ const EnvManagement = () => {
             Each row is a product. Profiles shown as tags —{" "}
             <span className="font-medium">(default)</span> is used for new nodes
             unless another is chosen on the node screen. Click a profile to edit
-            variables; use{" "}
-            <span className="font-medium">Set default</span> in Actions to change
-            the default profile.
+            variables; use <span className="font-medium">Set default</span> in
+            Actions to change the default profile.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

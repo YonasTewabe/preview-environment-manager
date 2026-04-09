@@ -1,7 +1,11 @@
-import { Layout, Button, Dropdown, Avatar, Space } from 'antd';
-import { UserOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons';
-import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { Layout, Button, Dropdown, Avatar, Space } from "antd";
+import {
+  UserOutlined,
+  LogoutOutlined,
+  SettingOutlined,
+} from "@ant-design/icons";
+import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const { Header } = Layout;
 
@@ -11,33 +15,25 @@ const AppHeader = ({ title = "Preview Builder" }) => {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   const userMenuItems = [
     {
-      key: 'profile',
+      key: "profile",
       icon: <UserOutlined />,
-      label: 'Profile',
+      label: "Profile",
       onClick: () => {
-        navigate('/profile');
-      }
+        navigate("/profile");
+      },
     },
     {
-      key: 'settings',
-      icon: <SettingOutlined />,
-      label: 'Settings',
-      onClick: () => {
-        navigate('/profile');
-      }
+      type: "divider",
     },
     {
-      type: 'divider',
-    },
-    {
-      key: 'logout',
+      key: "logout",
       icon: <LogoutOutlined />,
-      label: 'Logout',
+      label: "Logout",
       onClick: handleLogout,
     },
   ];
@@ -45,31 +41,27 @@ const AppHeader = ({ title = "Preview Builder" }) => {
   return (
     <Header className="bg-white shadow-sm border-b border-gray-200 px-6 flex items-center justify-between">
       <div className="flex items-center">
-        <h1 className="text-xl font-semibold text-gray-800 mb-0">
-          {title}
-        </h1>
+        <h1 className="text-xl font-semibold text-gray-800 mb-0">{title}</h1>
       </div>
-      
+
       <div className="flex items-center">
         <Space size="middle">
           <span className="text-gray-600">
             Welcome, <strong>{user?.first_name || user?.username}</strong>
           </span>
-          
+
           <Dropdown
             menu={{ items: userMenuItems }}
             placement="bottomRight"
-            trigger={['click']}
+            trigger={["click"]}
           >
             <Button type="text" className="flex items-center">
-              <Avatar 
-                size="small" 
-                icon={<UserOutlined />} 
+              <Avatar
+                size="small"
+                icon={<UserOutlined />}
                 className="bg-blue-500"
               />
-              <span className="ml-2 text-gray-700">
-                {user?.username}
-              </span>
+              <span className="ml-2 text-gray-700">{user?.username}</span>
             </Button>
           </Dropdown>
         </Space>

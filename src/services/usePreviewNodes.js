@@ -27,10 +27,7 @@ const previewNodesClient = {
   deleteById: (id) => api.delete(`${PREVIEW_NODES_PATH}/${id}`),
   listEnvVars: (nodeId, profileId = null) =>
     api.get(`${PREVIEW_NODES_PATH}/${nodeId}/env-vars`, {
-      params:
-        profileId != null && profileId !== ""
-          ? { profileId }
-          : undefined,
+      params: profileId != null && profileId !== "" ? { profileId } : undefined,
     }),
   addEnvVar: (nodeId, key, value, profileId = null) =>
     api.post(`${PREVIEW_NODES_PATH}/${nodeId}/env-vars`, {
@@ -44,9 +41,7 @@ const previewNodesClient = {
       { value },
       {
         params:
-          profileId != null && profileId !== ""
-            ? { profileId }
-            : undefined,
+          profileId != null && profileId !== "" ? { profileId } : undefined,
       },
     ),
   deleteEnvVar: (nodeId, key, profileId = null) =>
@@ -54,9 +49,7 @@ const previewNodesClient = {
       `${PREVIEW_NODES_PATH}/${nodeId}/env-vars/${encodeURIComponent(key)}`,
       {
         params:
-          profileId != null && profileId !== ""
-            ? { profileId }
-            : undefined,
+          profileId != null && profileId !== "" ? { profileId } : undefined,
       },
     ),
 };
@@ -145,8 +138,7 @@ export const useUpdatePreviewNode = () => {
   return useMutation({
     mutationFn: ({ id, data }) => previewNodesClient.update(id, data),
     onSuccess: async (_res, variables) => {
-      const pid =
-        variables?.data?.project_id ?? variables?.project_id ?? null;
+      const pid = variables?.data?.project_id ?? variables?.project_id ?? null;
       const pk = queryKeyPart(pid);
       const nid = queryKeyPart(variables?.id);
       await invalidateAndRefetchActive(

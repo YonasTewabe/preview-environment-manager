@@ -999,7 +999,7 @@ export default function NodeConfigView({
       if (result.success) {
         setDeployProgress({
           stage: "completed",
-          message: "Preview deployment completed successfully! 🎉",
+          message: "Preview deployment completed successfully!",
           buildNumber: result.buildNumber,
         });
 
@@ -2010,11 +2010,15 @@ export default function NodeConfigView({
         }}
       />
 
-      {/* Build Progress Modal for Rebuild */}
+      {/* Build progress modal — same UX as deploy (DeployProgressModal) */}
       <BuildProgressModal
         isVisible={isBuildModalVisible}
         buildProgress={buildProgress}
         onCancel={handleBuildModalCancel}
+        onSuccess={handleBuildModalCancel}
+        inProgressTitle="Frontend Deployment Progress"
+        failedHeading="Deployment Failed"
+        errorHeading="Deployment Error"
       />
     </>
   );

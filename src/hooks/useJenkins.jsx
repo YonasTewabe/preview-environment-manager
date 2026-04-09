@@ -244,11 +244,11 @@ export function useJenkins() {
   };
   const triggerJenkinsFrontBuild = async (jenkinsParams, onSuccess, onError) => {
     try {
-      // Show build progress modal
+      // Show build progress modal (copy deploy flow messaging for parity)
       setIsBuildModalVisible(true);
       setBuildProgress({
         stage: "triggering",
-        message: "Triggering Jenkins Rebuild...",
+        message: "Deploying preview configuration...",
         buildNumber: null,
         result: null,
         artifactData: null,
@@ -274,7 +274,7 @@ export function useJenkins() {
 
         setBuildProgress({
           stage: "completed",
-          message: "Build completed successfully!",
+          message: "Preview deployment completed successfully!",
           buildNumber: jenkinsResponse.data.buildNumber,
           result: jenkinsResponse.data.result,
           artifactData: jenkinsResponse.data.artifactData,
@@ -294,7 +294,7 @@ export function useJenkins() {
 
         setBuildProgress({
           stage: "failed",
-          message: `Build failed: ${jenkinsResponse.data.message}`,
+          message: `Deployment failed: ${jenkinsResponse.data.message}`,
           buildNumber: jenkinsResponse.data.buildNumber,
           result: jenkinsResponse.data.result,
           artifactData: null,
@@ -313,7 +313,7 @@ export function useJenkins() {
         message:
           error.response?.data?.message ||
           error.message ||
-          "Unknown error occurred",
+          "Deployment failed. Please try again.",
         buildNumber: null,
         result: "ERROR",
         artifactData: null,

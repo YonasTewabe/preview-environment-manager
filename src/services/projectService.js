@@ -81,6 +81,12 @@ export const projectService = {
     return response.data;
   },
 
+  /** Stats + recent builds for dashboard (invalidate via dashboardSummary query key after deploy/mutations). */
+  getDashboardSummary: async () => {
+    const response = await api.get('/dashboard/summary');
+    return response.data;
+  },
+
   // Update project status
   updateProjectStatus: async (id, status) => {
     const response = await api.patch(`/projects/${id}/status`, { status });

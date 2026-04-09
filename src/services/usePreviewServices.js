@@ -217,9 +217,7 @@ export const useImportPreviewServices = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(
-          errorData.error || "Failed to import preview services",
-        );
+        throw new Error(errorData.error || "Failed to import preview services");
       }
 
       return response.json();
@@ -341,9 +339,7 @@ export const useUpdateBranch = () => {
       return response.json();
     },
     onSuccess: async (data, variables) => {
-      const nid = queryKeyPart(
-        variables.data?.node_id ?? variables.node_id,
-      );
+      const nid = queryKeyPart(variables.data?.node_id ?? variables.node_id);
       await invalidateAndRefetchActive(
         queryClient,
         ...(nid != null ? [["branches", nid]] : []),

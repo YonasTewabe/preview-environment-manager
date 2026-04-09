@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { Row, Col, Card, Tag, Typography } from "antd";
 import {
-  PauseCircleOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   ClockCircleOutlined,
@@ -19,13 +19,48 @@ function normalizeBuildStatus(raw) {
     .trim()
     .toLowerCase();
   if (s === "success" || s === "successful") return "success";
-  if (s === "failed" || s === "failure") return "failed";
+  if (s === "failed" || s === "failure" || s === "fail" || s === "unstable")
+    return "failed";
   if (s === "building" || s === "in_progress" || s === "in progress")
     return "building";
   if (s === "cancelled" || s === "canceled" || s === "aborted")
     return "cancelled";
+  if (s === "not_built" || s === "not built") return "pending";
   if (!s) return "pending";
   return s;
+}
+
+/** DB + Jenkins payloads: prefer `build_status`, then legacy/alt fields. */
+function resolveNodeBuildStatus(service) {
+  if (!service || typeof service !== "object") return "pending";
+  const raw =
+    service.build_status ??
+    service.buildStatus ??
+    service.build_result ??
+    service.buildResult;
+  return normalizeBuildStatus(raw);
+}
+
+function hasDeployedPreviewUrl(service) {
+  if (!service || typeof service !== "object") return false;
+  const link =
+    service.preview_link ??
+    service.previewLink ??
+    service.default_url ??
+    service.defaultUrl ??
+    service.deployment_url ??
+    service.deploymentUrl;
+  return link != null && String(link).trim() !== "";
+}
+
+/**
+ * Stats card counts: same idea as `nodeHasCompletedBuild` — DB `build_status`
+ * can stay `pending` while a preview URL exists after a successful deploy.
+ */
+function effectiveBuildStatusForStats(service) {
+  const st = resolveNodeBuildStatus(service);
+  if (st === "pending" && hasDeployedPreviewUrl(service)) return "success";
+  return st;
 }
 
 function pickServices(payload) {
@@ -100,13 +135,13 @@ const Dashboard = () => {
       const allNodes = [...webServices, ...apiServices];
 
       const activeBuilds = allNodes.filter(
-        (s) => normalizeBuildStatus(s.build_status) === "building",
+        (s) => resolveNodeBuildStatus(s) === "building",
       ).length;
       const successfulBuilds = allNodes.filter(
-        (s) => normalizeBuildStatus(s.build_status) === "success",
+        (s) => effectiveBuildStatusForStats(s) === "success",
       ).length;
       const failedBuilds = allNodes.filter(
-        (s) => normalizeBuildStatus(s.build_status) === "failed",
+        (s) => effectiveBuildStatusForStats(s) === "failed",
       ).length;
 
       setStats({
@@ -119,7 +154,6 @@ const Dashboard = () => {
       const recentBuildsList = [];
 
       apiServices.forEach((service, index) => {
-        const st = normalizeBuildStatus(service.build_status);
         const buildDate =
           service.updated_at ||
           service.last_build_at ||
@@ -128,11 +162,11 @@ const Dashboard = () => {
         const t = buildDate ? new Date(buildDate).getTime() : 0;
         recentBuildsList.push({
           key: `api-${service.id ?? index}`,
-          kind: "API",
+          nodeId: service.id,
+          projectId: service.project_id ?? service.projectId,
           service:
             service.service_name || service.serviceName || "Unknown service",
           branch: service.branch_name || service.branchName || "main",
-          status: st,
           duration:
             service.created_at && (service.updated_at || service.last_build_at)
               ? formatDuration(
@@ -146,7 +180,6 @@ const Dashboard = () => {
       });
 
       webServices.forEach((service, index) => {
-        const st = normalizeBuildStatus(service.build_status);
         const buildDate =
           service.updated_at ||
           service.last_build_at ||
@@ -155,11 +188,11 @@ const Dashboard = () => {
         const t = buildDate ? new Date(buildDate).getTime() : 0;
         recentBuildsList.push({
           key: `web-${service.id ?? index}`,
-          kind: "Web",
+          nodeId: service.id,
+          projectId: service.project_id ?? service.projectId,
           service:
             service.service_name || service.serviceName || "Unknown service",
           branch: service.branch_name || service.branchName || "main",
-          status: st,
           duration: "N/A",
           timestamp: formatTimeAgo(buildDate),
           buildDate: t,
@@ -257,109 +290,61 @@ const Dashboard = () => {
             {recentBuilds.length > 0 ? (
               <div className="space-y-3">
                 {recentBuilds.map((build) => {
-                  const getStatusConfig = () => {
-                    switch (build.status) {
-                      case "success":
-                        return {
-                          color: "success",
-                          text: "SUCCESS",
-                          icon: (
-                            <CheckCircleOutlined className="text-green-500" />
-                          ),
-                          bgColor: "bg-green-50 dark:bg-green-900/20",
-                          borderColor: "border-green-200 dark:border-green-800",
-                        };
-                      case "building":
-                        return {
-                          color: "processing",
-                          text: "BUILDING",
-                          icon: (
-                            <ClockCircleOutlined className="text-blue-500" />
-                          ),
-                          bgColor: "bg-blue-50 dark:bg-blue-900/20",
-                          borderColor: "border-blue-200 dark:border-blue-800",
-                        };
-                      case "failed":
-                        return {
-                          color: "error",
-                          text: "FAILED",
-                          icon: (
-                            <CloseCircleOutlined className="text-red-500" />
-                          ),
-                          bgColor: "bg-red-50 dark:bg-red-900/20",
-                          borderColor: "border-red-200 dark:border-red-800",
-                        };
-                      case "cancelled":
-                        return {
-                          color: "default",
-                          text: "CANCELLED",
-                          icon: (
-                            <CloseCircleOutlined className="text-zinc-500" />
-                          ),
-                          bgColor: "bg-zinc-100 dark:bg-zinc-800/40",
-                          borderColor: "border-zinc-200 dark:border-zinc-600",
-                        };
-                      default:
-                        return {
-                          color: "default",
-                          text: "PENDING",
-                          icon: (
-                            <PauseCircleOutlined className="text-orange-500" />
-                          ),
-                          bgColor: "bg-orange-50 dark:bg-orange-900/20",
-                          borderColor:
-                            "border-orange-200 dark:border-orange-800",
-                        };
-                    }
-                  };
+                  const canLink =
+                    build.projectId != null &&
+                    build.nodeId != null &&
+                    String(build.projectId) !== "" &&
+                    String(build.nodeId) !== "";
+                  const detailPath = canLink
+                    ? `/projects/${build.projectId}/nodes/${build.nodeId}`
+                    : null;
 
-                  const statusConfig = getStatusConfig();
+                  const rowClass = `block rounded-lg border border-zinc-200/80 p-4 transition-all hover:shadow-md dark:border-zinc-800 ${isDark ? "dark:!bg-zinc-900" : "!bg-white"}`;
+                  const rowInner = (
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <Text
+                            strong
+                            className="text-base text-black dark:text-white"
+                          >
+                            {build.service}
+                          </Text>
+                          <Tag color="blue" className="text-xs">
+                            {build.branch}
+                          </Tag>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3 text-sm">
+                          {build.duration !== "N/A" && (
+                            <div className="flex items-center gap-1">
+                              <ClockCircleOutlined className="text-gray-400" />
+                              <Text type="secondary" className="text-xs">
+                                {build.duration}
+                              </Text>
+                            </div>
+                          )}
+                          <Text type="secondary" className="text-xs">
+                            {build.timestamp}
+                          </Text>
+                        </div>
+                      </div>
+                    </div>
+                  );
 
-                  return (
+                  return detailPath ? (
+                    <Link
+                      key={build.key}
+                      to={detailPath}
+                      className={`${rowClass} text-inherit no-underline hover:text-inherit focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900`}
+                    >
+                      {rowInner}
+                    </Link>
+                  ) : (
                     <div
                       key={build.key}
-                      className={`cursor-default rounded-lg border border-zinc-200/80 p-4 transition-all hover:shadow-md dark:border-zinc-800 ${isDark ? "dark:!bg-zinc-900" : "!bg-white"}`}
+                      className={`${rowClass} cursor-default`}
                     >
-                      <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
-                        <div className="flex min-w-0 flex-1 items-start gap-3">
-                          <div className="mt-1 text-xl">
-                            {statusConfig.icon}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-2 flex flex-wrap items-center gap-2">
-                              <Text
-                                strong
-                                className="text-base text-black dark:text-white"
-                              >
-                                {build.service}
-                              </Text>
-                              <Tag color="blue" className="text-xs">
-                                {build.branch}
-                              </Tag>
-                              <Tag className="text-xs">{build.kind}</Tag>
-                            </div>
-                            <div className="flex flex-wrap items-center gap-3 text-sm">
-                              {build.duration !== "N/A" && (
-                                <div className="flex items-center gap-1">
-                                  <ClockCircleOutlined className="text-gray-400" />
-                                  <Text type="secondary" className="text-xs">
-                                    {build.duration}
-                                  </Text>
-                                </div>
-                              )}
-                              <Text type="secondary" className="text-xs">
-                                {build.timestamp}
-                              </Text>
-                            </div>
-                          </div>
-                        </div>
-                        <Tag
-                          color={statusConfig.color}
-                          className="shrink-0 font-semibold"
-                        >
-                          {statusConfig.text}
-                        </Tag>
-                      </div>
+                      {rowInner}
                     </div>
                   );
                 })}

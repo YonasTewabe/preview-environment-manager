@@ -712,7 +712,7 @@ const ProjectEnvironments = () => {
           items={[
             {
               key: "one",
-              label: "One at a time",
+              label: "Manual entry",
               children: (
                 <div
                   style={{
@@ -795,7 +795,7 @@ const ProjectEnvironments = () => {
             },
             {
               key: "bulk",
-              label: "Paste many",
+              label: "Bulk import",
               children: (
                 <div>
                   <Typography.Paragraph
@@ -815,7 +815,7 @@ const ProjectEnvironments = () => {
                     </Typography.Text>{" "}
                     objects. Duplicate keys keep the last entry; variables that
                     already exist are updated. Rows with empty values are
-                    skipped (same as single add).
+                    skipped (same as manual entry).
                   </Typography.Paragraph>
                   <Input.TextArea
                     value={pastedBulk}
