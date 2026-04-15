@@ -26,6 +26,16 @@ export const configurationService = {
     const response = await api.put("/configuration/github", { settings });
     return response.data;
   },
+  getSystemSettings: async () => {
+    const response = await api.get("/configuration/system", {
+      params: { includeSecrets: true },
+    });
+    return response.data?.settings || [];
+  },
+  saveSystemSettings: async (settings) => {
+    const response = await api.put("/configuration/system", { settings });
+    return response.data;
+  },
 };
 
 export default configurationService;

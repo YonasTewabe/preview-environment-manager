@@ -60,4 +60,30 @@ router.put("/github", async (req, res) => {
   }
 });
 
+router.get("/system", async (req, res) => {
+  try {
+    const settings = await configurationService.getSettingsByCategory("system", {
+      includeSecrets: wantsSecrets(req),
+    });
+    res.json({ settings });
+  } catch (error) {
+    console.error("Failed to load system settings:", error);
+    res.status(500).json({ error: "Failed to load system settings" });
+  }
+});
+
+router.put("/system", async (req, res) => {
+  try {
+    const settings = Array.isArray(req.body?.settings) ? req.body.settings : [];
+    await configurationService.upsertSettings(settings);
+    const updated = await configurationService.getSettingsByCategory("system", {
+      includeSecrets: true,
+    });
+    res.json({ message: "System settings saved", settings: updated });
+  } catch (error) {
+    console.error("Failed to save system settings:", error);
+    res.status(500).json({ error: "Failed to save system settings" });
+  }
+});
+
 export default router;

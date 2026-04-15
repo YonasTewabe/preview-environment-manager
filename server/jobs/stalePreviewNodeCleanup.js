@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import { Op } from "sequelize";
 import { Node } from "../models/index.js";
 import { deletePreviewDomainViaJenkins } from "../services/jenkinsDeletePreviewDomain.js";
+import configurationService from "../services/configurationService.js";
 
 /**
  * Same idea as the UI: only call Jenkins when a successful preview + domain likely exist.
@@ -18,10 +19,8 @@ function shouldRemoveDomainFromJenkins(node) {
 }
 
 export async function runStalePreviewNodeCleanup() {
-  const days = Math.max(
-    1,
-    Number.parseInt(process.env.STALE_PREVIEW_NODE_DAYS ?? "5", 10) || 5,
-  );
+  const systemConfig = await configurationService.getSystemConfig();
+  const days = Math.max(1, Number(systemConfig.stalePreviewNodeDays) || 5);
   const cutoff = dayjs().subtract(days, "day").toDate();
 
   const stale = await Node.findAll({
@@ -99,7 +98,7 @@ export function scheduleStalePreviewNodeCleanup() {
     return;
   }
 
-  const schedule = process.env.STALE_PREVIEW_NODE_CRON?.trim() || "0 2 * * *";
+  const schedule = "0 2 * * *";
   console.warn(`[stale-preview-cleanup] Cron scheduled: "${schedule}"`);
   cron.schedule(schedule, () => {
     runStalePreviewNodeCleanup().catch((err) => {

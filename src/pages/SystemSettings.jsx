@@ -163,6 +163,15 @@ const githubFields = [
   },
 ];
 
+const systemFields = [
+  {
+    key: "stale_preview_node_days",
+    label: "Stale preview node days",
+    placeholder: "5",
+    secret: false,
+  },
+];
+
 const SystemSettings = () => {
   return (
     <div className="space-y-6 text-black dark:text-white">
@@ -171,7 +180,7 @@ const SystemSettings = () => {
           System settings
         </h2>
         <p className="font-bold text-gray-700 dark:text-gray-300">
-          Manage your Jenkins and GitHub connections
+          Manage your system configuration
         </p>
       </div>
 
@@ -200,6 +209,18 @@ const SystemSettings = () => {
                 queryKey={["systemSettings", "github"]}
                 load={configurationService.getGithubSettings}
                 save={configurationService.saveGithubSettings}
+              />
+            ),
+          },
+          {
+            key: "system-config",
+            label: "System config",
+            children: (
+              <SettingsTab
+                fields={systemFields}
+                queryKey={["systemSettings", "system"]}
+                load={configurationService.getSystemSettings}
+                save={configurationService.saveSystemSettings}
               />
             ),
           },
