@@ -266,8 +266,6 @@ function buildEnvJsonArrayFromBody(body) {
 
 function normalizeBuildTag(raw) {
   const t = String(raw ?? "").toLowerCase().trim();
-  if (t === "api" || t === "backend") return "backend";
-  if (t === "web" || t === "frontend") return "frontend";
   if (t === "frontend" || t === "backend") return t;
   return "";
 }

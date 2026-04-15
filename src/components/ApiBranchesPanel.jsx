@@ -14,6 +14,7 @@ import BranchModal from "./BranchModal";
 import { jenkinsPreviewTag } from "../utils/projectServiceKind";
 import BuildProgressModal from "./BuildProgressModal";
 import ServiceAccordion from "./ServiceAccordion";
+import { useAuth } from "../contexts/AuthContext";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   invalidateAndRefetchActive,
@@ -35,6 +36,8 @@ export default function ApiBranchesPanel({
   const [selectedServiceId, setSelectedServiceId] = useState(null);
   const [branchForm] = Form.useForm();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const createdBy = String(user?.id ?? "").trim();
 
   const createBranch = useCreateBranch();
   const updateBranch = useUpdateBranch();
@@ -101,6 +104,10 @@ export default function ApiBranchesPanel({
   const handleBranchModalOk = () => {
     branchForm.validateFields().then(async (values) => {
       try {
+        if (!createdBy) {
+          message.error("Session is stale. Please log in again.");
+          return;
+        }
         const selectedService = servicesArray.find(
           (service) => service.id === selectedServiceId,
         );
@@ -152,7 +159,7 @@ export default function ApiBranchesPanel({
           domain_name: domainName,
           port: jenkinsParams.PORT,
           node_id: selectedServiceId,
-          created_by: 1,
+          created_by: createdBy,
           build_result: "pending",
           jenkins_job_url: previewJobFolder,
         };

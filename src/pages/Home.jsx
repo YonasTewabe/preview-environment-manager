@@ -53,7 +53,7 @@ export default function Home({ project }) {
   const { user } = useAuth();
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const createdBy = Number.parseInt(user?.id, 10);
+  const createdBy = String(user?.id ?? "").trim();
   const isApi = isApiPreviewProject(project?.tag);
 
   const { githubBranches, loadingGithubBranches, fetchGithubBranches } =
@@ -179,11 +179,14 @@ export default function Home({ project }) {
 
   const handleModalOk = () => {
     form.validateFields().then(async (values) => {
+      if (!createdBy) {
+        message.error("Session is stale. Please log in again.");
+        return;
+      }
       const name = String(values.service_name ?? "").trim();
       const branch = String(values.branch_name ?? "").trim() || "main";
 
       if (isApi) {
-        const pid = Number(project?.id);
         if (!project?.repository_url || !projectDefaultEnvReady(project)) {
           message.warning(
             "This project is missing a repository URL or default environment variables.",
@@ -199,7 +202,7 @@ export default function Home({ project }) {
         const dupName = backendRows.find(
           (s) =>
             lc(s.service_name) === lc(name) &&
-            (!selfId || Number(s.id) !== Number(selfId)),
+            (!selfId || String(s.id) !== String(selfId)),
         );
         if (dupName) {
           message.error(
@@ -210,7 +213,7 @@ export default function Home({ project }) {
         const dupBranch = backendRows.find(
           (s) =>
             lc(s.branch_name) === lc(branch) &&
-            (!selfId || Number(s.id) !== Number(selfId)),
+            (!selfId || String(s.id) !== String(selfId)),
         );
         if (dupBranch) {
           message.error(
@@ -236,8 +239,8 @@ export default function Home({ project }) {
               default_url: project.repository_url,
               type: "api",
               description: null,
-              project_id: Number.isFinite(pid) ? pid : project.id,
-              created_by: Number.isFinite(createdBy) ? createdBy : 1,
+              project_id: project.id,
+              created_by: createdBy,
             });
           }
           setIsModalVisible(false);
@@ -259,7 +262,7 @@ export default function Home({ project }) {
       const dupWebName = webRows.find(
         (n) =>
           lcw(n.service_name) === lcw(name) &&
-          (!selfWebId || Number(n.id) !== Number(selfWebId)),
+          (!selfWebId || String(n.id) !== String(selfWebId)),
       );
       if (dupWebName) {
         message.error(`Service name "${name}" already exists in this project.`);
@@ -268,7 +271,7 @@ export default function Home({ project }) {
       const dupWebBranch = webRows.find(
         (n) =>
           lcw(n.branch_name) === lcw(branch) &&
-          (!selfWebId || Number(n.id) !== Number(selfWebId)),
+          (!selfWebId || String(n.id) !== String(selfWebId)),
       );
       if (dupWebBranch) {
         message.error(
@@ -316,7 +319,7 @@ export default function Home({ project }) {
             service_name: name,
             project_id: project.id,
             branch_name: branch,
-            created_by: Number.isFinite(createdBy) ? createdBy : 1,
+            created_by: createdBy,
           },
           {
             onSuccess: () => {

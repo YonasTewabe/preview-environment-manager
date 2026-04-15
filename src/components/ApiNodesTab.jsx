@@ -27,7 +27,7 @@ export default function ApiNodesTab({
   const { id: idFromRoute } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const createdBy = Number.parseInt(user?.id, 10);
+  const createdBy = String(user?.id ?? "").trim();
   const projectId = projectProp?.id ?? idFromRoute;
   const project = projectProp;
 
@@ -45,16 +45,13 @@ export default function ApiNodesTab({
   const loadingGithubBranches =
     loadingGithubBranchesProp ?? githubHook.loadingGithubBranches;
 
-  const detailServiceIdNum =
-    detailServiceIdProp != null && detailServiceIdProp !== ""
-      ? Number(detailServiceIdProp)
-      : null;
+  const detailServiceId = String(detailServiceIdProp ?? "").trim() || null;
   const servicesArray = Array.isArray(backendServices?.data)
     ? backendServices.data
     : [];
   const displayServices =
-    detailServiceIdNum != null && !Number.isNaN(detailServiceIdNum)
-      ? servicesArray.filter((s) => s.id === detailServiceIdNum)
+    detailServiceId != null
+      ? servicesArray.filter((s) => String(s.id) === detailServiceId)
       : servicesArray;
 
   const handleAddServiceClick = () => {
@@ -88,9 +85,12 @@ export default function ApiNodesTab({
 
   const handleServiceNodeSubmit = () => {
     form.validateFields().then(async (values) => {
+      if (!createdBy) {
+        message.error("Session is stale. Please log in again.");
+        return;
+      }
       const name = String(values.service_name ?? "").trim();
       const branch = String(values.branch_name ?? "").trim() || "main";
-      const pid = Number(projectId);
 
       if (!project?.repository_url || !projectDefaultEnvReady(project)) {
         message.warning(
@@ -106,7 +106,7 @@ export default function ApiNodesTab({
       const dupName = servicesArray.find(
         (s) =>
           lc(s.service_name) === lc(name) &&
-          (!selfId || Number(s.id) !== Number(selfId)),
+          (!selfId || String(s.id) !== String(selfId)),
       );
       if (dupName) {
         message.error(
@@ -117,7 +117,7 @@ export default function ApiNodesTab({
       const dupBranch = servicesArray.find(
         (s) =>
           lc(s.branch_name) === lc(branch) &&
-          (!selfId || Number(s.id) !== Number(selfId)),
+          (!selfId || String(s.id) !== String(selfId)),
       );
       if (dupBranch) {
         message.error(
@@ -144,8 +144,8 @@ export default function ApiNodesTab({
             default_url: project.repository_url,
             type: "api",
             description: null,
-            project_id: Number.isFinite(pid) ? pid : projectId,
-            created_by: Number.isFinite(createdBy) ? createdBy : 1,
+            project_id: projectId,
+            created_by: createdBy,
           });
         }
         setIsModalVisible(false);
@@ -208,8 +208,7 @@ export default function ApiNodesTab({
         >
           <Spin size="large" tip="Loading services..." />
         </div>
-      ) : detailServiceIdNum != null &&
-        !Number.isNaN(detailServiceIdNum) &&
+      ) : detailServiceId != null &&
         displayServices.length === 0 ? (
         <div
           style={{

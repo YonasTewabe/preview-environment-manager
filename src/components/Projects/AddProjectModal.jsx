@@ -20,6 +20,8 @@ import {
 import dayjs from "dayjs";
 
 const { TextArea } = Input;
+const UUID_V4_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 const DUPLICATE_FIELD_NAMES = new Set([
   "name",
@@ -62,7 +64,7 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
   const [form] = Form.useForm();
   const authUser = JSON.parse(window.localStorage.getItem("user"));
 
-  const createdBy = Number.parseInt(authUser?.id, 10);
+  const createdBy = String(authUser?.id ?? "").trim();
 
   useEffect(() => {
     if (!visible) return;
@@ -75,11 +77,9 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
 
     if (isEdit && project) {
       const tag =
-        project.tag === "web"
-          ? "frontend"
-          : project.tag === "api"
-            ? "backend"
-            : project.tag || "frontend";
+        project.tag === "frontend" || project.tag === "backend"
+          ? project.tag
+          : "frontend";
       form.setFieldsValue({
         name: project.name,
         short_code: project.short_code,
@@ -107,13 +107,18 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
 
     const formattedValues = {
       ...values,
-      created_by: Number.isFinite(createdBy) ? createdBy : 1,
+      created_by: createdBy,
       created_at: values.created_at?.toISOString(),
       updated_at: dayjs().toISOString(),
       short_code: String(values.short_code ?? "")
         .trim()
         .toLowerCase(),
     };
+
+    if (!UUID_V4_RE.test(formattedValues.created_by)) {
+      message.error("Session is stale. Please log in again.");
+      return;
+    }
 
     try {
       await onSubmit(formattedValues);

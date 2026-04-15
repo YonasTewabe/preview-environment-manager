@@ -108,11 +108,7 @@ function projectEnvVarsFetchUrl(projectId, profileId) {
 
 function previewNodeEnvVarsUrl(nodeId, profileId) {
   const path = `${import.meta.env.VITE_BACKEND_URL}preview-nodes/${nodeId}/env-vars`;
-  if (
-    profileId == null ||
-    profileId === "" ||
-    !Number.isFinite(Number(profileId))
-  ) {
+  if (profileId == null || profileId === "") {
     return path;
   }
   return `${path}?profileId=${encodeURIComponent(profileId)}`;
@@ -121,11 +117,7 @@ function previewNodeEnvVarsUrl(nodeId, profileId) {
 function previewNodeEnvVarKeyUrl(nodeId, key, profileId) {
   const enc = encodeURIComponent(key);
   const base = `${import.meta.env.VITE_BACKEND_URL}preview-nodes/${nodeId}/env-vars/${enc}`;
-  if (
-    profileId == null ||
-    profileId === "" ||
-    !Number.isFinite(Number(profileId))
-  ) {
+  if (profileId == null || profileId === "") {
     return base;
   }
   return `${base}?profileId=${encodeURIComponent(profileId)}`;
@@ -395,9 +387,7 @@ export default function NodeConfigView({
     }
     const raw = selectedNode.project_env_profile_id;
     setNodeProfileId(
-      raw != null && raw !== "" && Number.isFinite(Number(raw))
-        ? Number(raw)
-        : null,
+      raw != null && raw !== "" ? String(raw) : null,
     );
   }, [
     selectedNode?.id,
@@ -459,15 +449,14 @@ export default function NodeConfigView({
     const list = projectEnvVarsResp?.env_profiles;
     if (!Array.isArray(list)) return null;
     const d = list.find((p) => p.is_default);
-    if (d?.id == null) return null;
-    const n = Number(d.id);
-    return Number.isFinite(n) ? n : null;
+    if (d?.id == null || d.id === "") return null;
+    return String(d.id);
   }, [projectEnvVarsResp?.env_profiles]);
 
   const effectiveEnvProfileId = useCallback(
     (explicit) => {
-      if (explicit != null && Number.isFinite(Number(explicit)))
-        return Number(explicit);
+      if (explicit != null && String(explicit).trim() !== "")
+        return String(explicit);
       return defaultEnvProfileId;
     },
     [defaultEnvProfileId],
@@ -548,8 +537,7 @@ export default function NodeConfigView({
   const savedExplicitProfileId = useMemo(() => {
     const raw = selectedNode?.project_env_profile_id;
     if (raw == null || raw === "") return null;
-    const n = Number(raw);
-    return Number.isFinite(n) ? n : null;
+    return String(raw);
   }, [selectedNode?.project_env_profile_id]);
 
   const profileSelectionDirty = useMemo(() => {
@@ -585,7 +573,9 @@ export default function NodeConfigView({
     const list = projectEnvVarsResp?.env_profiles;
     if (!Array.isArray(list)) return null;
     if (savedExplicitProfileId != null) {
-      const hit = list.find((p) => Number(p.id) === savedExplicitProfileId);
+      const hit = list.find(
+        (p) => String(p.id) === String(savedExplicitProfileId),
+      );
       if (!hit) return null;
       return hit.is_default ? `${hit.name} (default)` : hit.name;
     }
@@ -600,10 +590,10 @@ export default function NodeConfigView({
   const saveNodeProfileSelection = async () => {
     if (!selectedNode?.id || !profileSelectionDirty) return;
     const payloadId =
-      nodeProfileId != null && Number.isFinite(Number(nodeProfileId))
-        ? Number(nodeProfileId)
+      nodeProfileId != null && String(nodeProfileId).trim() !== ""
+        ? String(nodeProfileId)
         : (projectEnvVarsResp?.profile_id ?? defaultEnvProfileId);
-    if (payloadId == null || !Number.isFinite(Number(payloadId))) {
+    if (payloadId == null || String(payloadId).trim() === "") {
       message.error("Could not resolve profile to save.");
       return;
     }
@@ -611,7 +601,7 @@ export default function NodeConfigView({
     try {
       await updatePreviewNodeMutation.mutateAsync({
         id: selectedNode.id,
-        data: { project_env_profile_id: Number(payloadId) },
+        data: { project_env_profile_id: String(payloadId) },
       });
       const nodeKey = queryKeyPart(selectedNode.id ?? id);
       void invalidateAndRefetchActive(

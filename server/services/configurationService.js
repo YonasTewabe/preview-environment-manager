@@ -106,13 +106,21 @@ async function getSettingsByCategory(
   const dbMap = await loadKeys(keys);
   return keys.map((key) => {
     const def = DEFINITIONS[key];
-    const value = valueWithFallback(key, dbMap);
+    const dbValue = normalizeValue(dbMap[key]);
+    const effectiveValue = valueWithFallback(key, dbMap);
     return {
       key,
       category: def.category,
       isSecret: def.isSecret,
-      value: includeSecrets || !def.isSecret ? value : value ? "********" : "",
-      hasValue: Boolean(value),
+      // Form inputs should show only stored values; fallbacks stay server-side.
+      value:
+        includeSecrets || !def.isSecret
+          ? dbValue
+          : dbValue
+            ? "********"
+            : "",
+      hasValue: Boolean(dbValue),
+      effectiveValue: includeSecrets || !def.isSecret ? effectiveValue : "",
       required: Boolean(def.required),
     };
   });

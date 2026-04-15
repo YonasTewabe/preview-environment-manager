@@ -55,14 +55,7 @@ function SettingsTab({ title, description, fields, queryKey, load, save }) {
     for (const row of data || []) map[row.key] = row;
     return map;
   }, [data]);
-  const loadedFields = useMemo(
-    () =>
-      fields.filter((field) => {
-        const row = settingsMeta[field.key];
-        return Boolean(row?.hasValue);
-      }),
-    [fields, settingsMeta],
-  );
+  const loadedFields = fields;
 
   return (
     <Card className="border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -91,16 +84,10 @@ function SettingsTab({ title, description, fields, queryKey, load, save }) {
             )}
           </Form.Item>
         ))}
-        {loadedFields.length === 0 ? (
-          <Text type="secondary">
-            No saved values found for this section yet.
-          </Text>
-        ) : null}
         <Button
           type="primary"
           htmlType="submit"
           loading={mutation.isPending || isLoading}
-          disabled={loadedFields.length === 0}
         >
           Save {title}
         </Button>

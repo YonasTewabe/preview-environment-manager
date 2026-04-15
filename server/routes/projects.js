@@ -1,17 +1,34 @@
 import express from "express";
 import { Op } from "sequelize";
 import { sequelize } from "../config/database.js";
-import { Project, User, Environment, ProjectEnvProfile, Node } from "../models/index.js";
+import {
+  Project,
+  User,
+  Environment,
+  ProjectEnvProfile,
+  Node,
+} from "../models/index.js";
 import {
   slugifyEnvProfileLabel,
   uniqueSlugForProject,
 } from "../utils/envProfileSlug.js";
-import { getDefaultEnvProfile, resolveProfileIdForProject } from "../utils/resolveProjectEnvProfile.js";
+import {
+  getDefaultEnvProfile,
+  resolveProfileIdForProject,
+} from "../utils/resolveProjectEnvProfile.js";
 import { refreshStatsAfterMutation } from "../services/statsService.js";
 
 const router = express.Router();
 router.use(refreshStatsAfterMutation);
 const ACTIVE_PROJECT_WHERE = { is_deleted: false };
+
+function normalizeProjectTag(tag) {
+  const t = String(tag ?? "").trim().toLowerCase();
+  if (t === "frontend" || t === "backend") return t;
+  return null;
+}
+const UUID_V4_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 async function findActiveProjectByPk(id, options = {}) {
   return Project.findOne({
@@ -21,7 +38,9 @@ async function findActiveProjectByPk(id, options = {}) {
 }
 
 async function envProfileNameTaken(projectId, nameTrimmed, excludeProfileId) {
-  const want = String(nameTrimmed ?? "").trim().toLowerCase();
+  const want = String(nameTrimmed ?? "")
+    .trim()
+    .toLowerCase();
   if (!want) return null;
   const rows = await ProjectEnvProfile.findAll({
     where: { project_id: projectId },
@@ -31,7 +50,11 @@ async function envProfileNameTaken(projectId, nameTrimmed, excludeProfileId) {
     if (excludeProfileId != null && String(r.id) === String(excludeProfileId)) {
       continue;
     }
-    if (String(r.name ?? "").trim().toLowerCase() === want) {
+    if (
+      String(r.name ?? "")
+        .trim()
+        .toLowerCase() === want
+    ) {
       return "An environment profile with this name already exists for this project.";
     }
   }
@@ -39,7 +62,9 @@ async function envProfileNameTaken(projectId, nameTrimmed, excludeProfileId) {
 }
 
 function normalizeRepositoryUrl(u) {
-  return String(u ?? "").trim().replace(/\/+$/, "");
+  return String(u ?? "")
+    .trim()
+    .replace(/\/+$/, "");
 }
 
 /**
@@ -47,9 +72,13 @@ function normalizeRepositoryUrl(u) {
  */
 async function findFirstDuplicateProjectField(payload, excludeProjectId) {
   const nameNorm = String(payload.name ?? "").trim();
-  const shortNorm = String(payload.short_code ?? "").trim().toLowerCase();
+  const shortNorm = String(payload.short_code ?? "")
+    .trim()
+    .toLowerCase();
   const repoNorm = normalizeRepositoryUrl(payload.repository_url);
-  const envNorm = String(payload.env_name ?? "").trim().toLowerCase();
+  const envNorm = String(payload.env_name ?? "")
+    .trim()
+    .toLowerCase();
 
   const idFilter =
     excludeProjectId != null && String(excludeProjectId).trim()
@@ -74,10 +103,7 @@ async function findFirstDuplicateProjectField(payload, excludeProjectId) {
         error: "This short code is already in use.",
       };
     }
-    if (
-      repoNorm &&
-      normalizeRepositoryUrl(p.repository_url) === repoNorm
-    ) {
+    if (repoNorm && normalizeRepositoryUrl(p.repository_url) === repoNorm) {
       return {
         field: "repository_url",
         error: "This repository URL is already linked to another project.",
@@ -85,7 +111,9 @@ async function findFirstDuplicateProjectField(payload, excludeProjectId) {
     }
     if (
       envNorm &&
-      String(p.env_name ?? "").trim().toLowerCase() === envNorm
+      String(p.env_name ?? "")
+        .trim()
+        .toLowerCase() === envNorm
     ) {
       return {
         field: "env_name",
@@ -121,14 +149,23 @@ function mapUniqueConstraintError(error) {
 }
 
 const isUnknownColumnError = (error, columnName) => {
-  const msg = error?.original?.sqlMessage || error?.parent?.sqlMessage || error?.message || '';
-  return typeof msg === 'string' && msg.includes('Unknown column') && msg.includes(columnName);
+  const msg =
+    error?.original?.sqlMessage ||
+    error?.parent?.sqlMessage ||
+    error?.message ||
+    "";
+  return (
+    typeof msg === "string" &&
+    msg.includes("Unknown column") &&
+    msg.includes(columnName)
+  );
 };
 
 const sanitizeProject = (projectInstanceOrJson) => {
-  const json = typeof projectInstanceOrJson?.toJSON === 'function'
-    ? projectInstanceOrJson.toJSON()
-    : { ...(projectInstanceOrJson || {}) };
+  const json =
+    typeof projectInstanceOrJson?.toJSON === "function"
+      ? projectInstanceOrJson.toJSON()
+      : { ...(projectInstanceOrJson || {}) };
 
   // Removed from API surface
   delete json.status;
@@ -174,9 +211,7 @@ const sanitizeProject = (projectInstanceOrJson) => {
 async function getNodeCountsByProjectIds(projectIds) {
   const ids = [
     ...new Set(
-      (projectIds || [])
-        .map((id) => String(id ?? "").trim())
-        .filter(Boolean),
+      (projectIds || []).map((id) => String(id ?? "").trim()).filter(Boolean),
     ),
   ];
   if (ids.length === 0) return {};
@@ -243,18 +278,24 @@ router.get("/", async (req, res) => {
     );
   } catch (error) {
     // Backward-compatible fallback when DB schema hasn't been updated yet.
-    if (isUnknownColumnError(error, 'Project.env_name')) {
+    if (isUnknownColumnError(error, "Project.env_name")) {
       try {
         const projects = await Project.findAll({
-          attributes: { exclude: ['status', 'env_name'] },
+          attributes: { exclude: ["status", "env_name"] },
           include: [
             {
               model: User,
-              as: 'creator',
-              attributes: ['id', 'username', 'email', 'first_name', 'last_name'],
+              as: "creator",
+              attributes: [
+                "id",
+                "username",
+                "email",
+                "first_name",
+                "last_name",
+              ],
             },
           ],
-          order: [['created_at', 'DESC']],
+          order: [["created_at", "DESC"]],
         });
         const countMapFb = await getNodeCountsByProjectIds(
           projects.map((p) => p.id),
@@ -281,7 +322,7 @@ router.get("/:id", async (req, res) => {
       attributes: { exclude: ["status"] },
       include: projectDetailIncludes,
     });
-    
+
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
@@ -292,15 +333,24 @@ router.get("/:id", async (req, res) => {
       nodes_count: countMapOne[project.id] ?? 0,
     });
   } catch (error) {
-    if (isUnknownColumnError(error, 'Project.env_name') || isUnknownColumnError(error, 'env_name')) {
+    if (
+      isUnknownColumnError(error, "Project.env_name") ||
+      isUnknownColumnError(error, "env_name")
+    ) {
       try {
         const project = await findActiveProjectByPk(req.params.id, {
-          attributes: { exclude: ['status', 'env_name'] },
+          attributes: { exclude: ["status", "env_name"] },
           include: [
             {
               model: User,
-              as: 'creator',
-              attributes: ['id', 'username', 'email', 'first_name', 'last_name'],
+              as: "creator",
+              attributes: [
+                "id",
+                "username",
+                "email",
+                "first_name",
+                "last_name",
+              ],
             },
           ],
         });
@@ -326,15 +376,32 @@ router.get("/:id", async (req, res) => {
 // POST /api/projects - Create a new project
 router.post("/", async (req, res) => {
   try {
-    const { name, description, repository_url, created_by, short_code, env_name, tag: tagRaw } = req.body;
-  
+    const {
+      name,
+      description,
+      repository_url,
+      created_by,
+      short_code,
+      env_name,
+      tag,
+    } = req.body;
+
     if (!name || !repository_url || !short_code || !env_name || !created_by) {
-      return res.status(400).json({ error: "Name, repository_url, short_code, env_name, and created_by are required" });
+      return res
+        .status(400)
+        .json({
+          error:
+            "Name, repository_url, short_code, env_name, and created_by are required",
+        });
     }
 
-    const tagNorm = String(tagRaw ?? 'frontend').toLowerCase();
-    const tag =
-      tagNorm === 'backend' || tagNorm === 'api' ? 'backend' : 'frontend';
+    const normalizedTag = normalizeProjectTag(tag);
+    if (!normalizedTag) {
+      return res.status(400).json({
+        error: 'tag must be either "frontend" or "backend".',
+        field: "tag",
+      });
+    }
 
     const nameNorm = String(name).trim();
     const shortNorm = String(short_code).trim().toLowerCase();
@@ -359,7 +426,7 @@ router.post("/", async (req, res) => {
       name: nameNorm,
       description,
       repository_url: repoNorm,
-      tag,
+      tag: normalizedTag,
       env_name: envNorm,
       created_by: String(created_by).trim(),
       short_code: shortNorm,
@@ -408,7 +475,7 @@ router.put("/:id", async (req, res) => {
       repository_url,
       short_code,
       env_name,
-      tag: tagRaw,
+      tag,
     } = req.body;
 
     const project = await findActiveProjectByPk(req.params.id);
@@ -421,7 +488,9 @@ router.put("/:id", async (req, res) => {
     const shortCodeNorm =
       short_code != null
         ? String(short_code).trim().toLowerCase()
-        : String(project.short_code ?? "").trim().toLowerCase();
+        : String(project.short_code ?? "")
+            .trim()
+            .toLowerCase();
     const repoNorm =
       repository_url != null
         ? normalizeRepositoryUrl(repository_url)
@@ -429,7 +498,9 @@ router.put("/:id", async (req, res) => {
     const envNorm =
       env_name != null && String(env_name).trim() !== ""
         ? String(env_name).trim().toLowerCase()
-        : String(project.env_name ?? "").trim().toLowerCase();
+        : String(project.env_name ?? "")
+            .trim()
+            .toLowerCase();
 
     const dup = await findFirstDuplicateProjectField(
       {
@@ -453,9 +524,15 @@ router.put("/:id", async (req, res) => {
     if (env_name != null && String(env_name).trim() !== "") {
       updates.env_name = String(env_name).trim().toLowerCase();
     }
-    if (tagRaw != null && String(tagRaw).trim() !== "") {
-      const t = String(tagRaw).toLowerCase();
-      updates.tag = t === "backend" || t === "api" ? "backend" : "frontend";
+    if (tag != null && String(tag).trim() !== "") {
+      const normalizedTag = normalizeProjectTag(tag);
+      if (!normalizedTag) {
+        return res.status(400).json({
+          error: 'tag must be either "frontend" or "backend".',
+          field: "tag",
+        });
+      }
+      updates.tag = normalizedTag;
     }
 
     await project.update(updates);
@@ -533,7 +610,8 @@ router.patch("/:id/restore", async (req, res) => {
     const project = await Project.findOne({
       where: { id: req.params.id, is_deleted: true },
     });
-    if (!project) return res.status(404).json({ error: "Project not found in trash" });
+    if (!project)
+      return res.status(404).json({ error: "Project not found in trash" });
     await project.update({ is_deleted: false });
     res.json({ message: "Project restored successfully" });
   } catch (error) {
@@ -562,9 +640,12 @@ router.put("/:id/environments", async (req, res) => {
     try {
       project = await findActiveProjectByPk(req.params.id);
     } catch (e) {
-      if (isUnknownColumnError(e, 'Project.env_name') || isUnknownColumnError(e, 'env_name')) {
+      if (
+        isUnknownColumnError(e, "Project.env_name") ||
+        isUnknownColumnError(e, "env_name")
+      ) {
         project = await findActiveProjectByPk(req.params.id, {
-          attributes: { exclude: ['env_name'] },
+          attributes: { exclude: ["env_name"] },
         });
       } else {
         throw e;
@@ -578,22 +659,25 @@ router.put("/:id/environments", async (req, res) => {
 
     // Parse environments if it's a string (text format)
     let environmentArray = [];
-    if (typeof environments === 'string') {
+    if (typeof environments === "string") {
       // Parse text format: KEY1=value1\nKEY2=value2
-      const lines = environments.split('\n').filter(line => line.trim());
-      environmentArray = lines.map(line => {
-        const [key, ...valueParts] = line.split('=');
-        return {
-          env_variable: key?.trim() || '',
-          env: valueParts.join('=').trim() || ''
-        };
-      }).filter(env => env.env_variable); // Filter out empty keys
+      const lines = environments.split("\n").filter((line) => line.trim());
+      environmentArray = lines
+        .map((line) => {
+          const [key, ...valueParts] = line.split("=");
+          return {
+            env_variable: key?.trim() || "",
+            env: valueParts.join("=").trim() || "",
+          };
+        })
+        .filter((env) => env.env_variable); // Filter out empty keys
     } else if (Array.isArray(environments)) {
       environmentArray = environments
         .map((item) => {
           // Accept either { key, value } or legacy { env_variable, env }
-          const env_variable = (item?.key ?? item?.env_variable ?? '').trim?.() ?? '';
-          const env = item?.value ?? item?.env ?? '';
+          const env_variable =
+            (item?.key ?? item?.env_variable ?? "").trim?.() ?? "";
+          const env = item?.value ?? item?.env ?? "";
           return { env_variable, env };
         })
         .filter((env) => env.env_variable);
@@ -611,7 +695,8 @@ router.put("/:id/environments", async (req, res) => {
     const envKeys = environmentArray.map((row) => row.env_variable);
     if (new Set(envKeys).size !== envKeys.length) {
       return res.status(400).json({
-        error: "Duplicate environment variable keys are not allowed for a profile",
+        error:
+          "Duplicate environment variable keys are not allowed for a profile",
       });
     }
 
@@ -734,7 +819,9 @@ router.post("/:id/env-profiles", async (req, res) => {
       error?.name === "SequelizeUniqueConstraintError" ||
       error?.parent?.code === "ER_DUP_ENTRY";
     if (dup) {
-      return res.status(409).json({ error: "Slug already exists for this project" });
+      return res
+        .status(409)
+        .json({ error: "Slug already exists for this project" });
     }
     console.error("Error creating env profile:", error);
     res.status(500).json({ error: "Failed to create environment profile" });
@@ -752,7 +839,8 @@ router.patch("/:id/env-profiles/:profileId", async (req, res) => {
     const row = await ProjectEnvProfile.findOne({
       where: { id: pid, project_id: project.id },
     });
-    if (!row) return res.status(404).json({ error: "Environment profile not found" });
+    if (!row)
+      return res.status(404).json({ error: "Environment profile not found" });
 
     const { name, slug: slugRaw, is_default: isDefaultRaw } = req.body || {};
     const updates = {};
@@ -814,7 +902,8 @@ router.delete("/:id/env-profiles/:profileId", async (req, res) => {
     const row = await ProjectEnvProfile.findOne({
       where: { id: pid, project_id: project.id },
     });
-    if (!row) return res.status(404).json({ error: "Environment profile not found" });
+    if (!row)
+      return res.status(404).json({ error: "Environment profile not found" });
 
     const count = await ProjectEnvProfile.count({
       where: { project_id: project.id },

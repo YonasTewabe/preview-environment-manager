@@ -226,7 +226,7 @@ export default function WebNodesList({
             {paginatedNodes.map((node) => {
               const deletingThis =
                 deletingNodeId != null &&
-                Number(node.id) === Number(deletingNodeId);
+                String(node.id) === String(deletingNodeId);
 
               return (
                 <Card

@@ -181,7 +181,7 @@ const ProjectEnvironments = () => {
 
   const activeProfileLabel = useMemo(() => {
     if (activeProfileId == null) return null;
-    const p = profiles.find((x) => Number(x.id) === Number(activeProfileId));
+    const p = profiles.find((x) => String(x.id) === String(activeProfileId));
     if (!p) return null;
     const name = String(p.name ?? "").trim() || "Unnamed";
     return p.is_default ? `${name} (default)` : name;
@@ -189,7 +189,7 @@ const ProjectEnvironments = () => {
 
   const activeProfileIsDefault = useMemo(() => {
     if (activeProfileId == null) return false;
-    const p = profiles.find((x) => Number(x.id) === Number(activeProfileId));
+    const p = profiles.find((x) => String(x.id) === String(activeProfileId));
     return Boolean(p?.is_default);
   }, [profiles, activeProfileId]);
 
@@ -199,17 +199,16 @@ const ProjectEnvironments = () => {
       return;
     }
     const fromUrl =
-      profileParam != null && profileParam !== "" ? Number(profileParam) : null;
+      profileParam != null && profileParam !== "" ? String(profileParam) : null;
     if (
       fromUrl != null &&
-      Number.isFinite(fromUrl) &&
-      profiles.some((p) => Number(p.id) === fromUrl)
+      profiles.some((p) => String(p.id) === fromUrl)
     ) {
       setActiveProfileId(fromUrl);
       return;
     }
     setActiveProfileId((prev) => {
-      if (prev != null && profiles.some((p) => Number(p.id) === Number(prev))) {
+      if (prev != null && profiles.some((p) => String(p.id) === String(prev))) {
         return prev;
       }
       const def = profiles.find((p) => p.is_default);
@@ -535,7 +534,7 @@ const ProjectEnvironments = () => {
     if (!activeProfileId || profiles.length <= 1 || activeProfileIsDefault)
       return;
     const remaining = profiles.filter(
-      (p) => Number(p.id) !== Number(activeProfileId),
+      (p) => String(p.id) !== String(activeProfileId),
     );
     const nextProfile =
       remaining.find((p) => p.is_default) ?? remaining[0] ?? null;
@@ -697,7 +696,7 @@ const ProjectEnvironments = () => {
               icon={<StarOutlined />}
               disabled={
                 !activeProfileId ||
-                profiles.find((p) => Number(p.id) === Number(activeProfileId))
+                profiles.find((p) => String(p.id) === String(activeProfileId))
                   ?.is_default
               }
               onClick={handleSetDefaultProfile}
