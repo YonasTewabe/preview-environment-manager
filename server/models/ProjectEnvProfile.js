@@ -5,12 +5,12 @@ const ProjectEnvProfile = sequelize.define(
   "ProjectEnvProfile",
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       primaryKey: true,
-      autoIncrement: true,
+      defaultValue: DataTypes.UUIDV4,
     },
     project_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
       references: { model: "projects", key: "id" },
       onDelete: "CASCADE",

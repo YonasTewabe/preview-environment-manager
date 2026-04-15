@@ -83,11 +83,8 @@ function normalizeFrontendBuildStatus(jenkinsOrInternal) {
 
 /** Timestamp when a preview deploy/rebuild was initiated (Jenkins trigger accepted). */
 async function setPreviewNodeLastBuildAtNow(nodeId) {
-  const fid =
-    typeof nodeId === "number" && Number.isFinite(nodeId)
-      ? nodeId
-      : parseInt(String(nodeId ?? ""), 10);
-  if (!Number.isFinite(fid) || fid <= 0) return;
+  const fid = String(nodeId ?? "").trim();
+  if (!fid) return;
   try {
     await Node.update({ last_build_at: new Date() }, { where: { id: fid } });
   } catch (upErr) {
@@ -111,17 +108,15 @@ async function recordPreviewNodeBuild(
   rawStatus,
 ) {
   const fid =
-    typeof nodeId === "number" && Number.isFinite(nodeId)
-      ? nodeId
-      : parseInt(String(nodeId ?? ""), 10);
+    String(nodeId ?? "").trim();
   const at =
     builtAt instanceof Date && !Number.isNaN(builtAt.getTime())
       ? builtAt
       : new Date();
 
   const jenk = parseInt(jenkinsBuildNumber, 10);
-  if (!Number.isFinite(fid) || fid <= 0 || !Number.isFinite(jenk)) {
-    if (!Number.isFinite(fid) || fid <= 0) {
+  if (!fid || !Number.isFinite(jenk)) {
+    if (!fid) {
       console.warn(
         "⚠️ Build history skipped: could not resolve preview node for this deploy",
       );
@@ -611,8 +606,8 @@ async function handleUnifiedPreviewBuild(req, res) {
       try {
         if (
           TAG === "frontend" &&
-          Number.isFinite(previewNodeId) &&
-          previewNodeId > 0
+          typeof previewNodeId === "string" &&
+          previewNodeId.trim() !== ""
         ) {
           const forDb = urlConfigsFromEnvJsonArray(envJsonArray);
           if (forDb.length > 0) {

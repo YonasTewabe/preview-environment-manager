@@ -5,18 +5,18 @@ const NodeEnvVar = sequelize.define(
   "NodeEnvVar",
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       primaryKey: true,
-      autoIncrement: true,
+      defaultValue: DataTypes.UUIDV4,
     },
     node_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
       references: { model: "nodes", key: "id" },
       onDelete: "CASCADE",
     },
     project_env_profile_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
       references: { model: "project_env_profiles", key: "id" },
       onDelete: "CASCADE",

@@ -5,9 +5,9 @@ const Stats = sequelize.define(
   "Stats",
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       primaryKey: true,
-      autoIncrement: true,
+      defaultValue: DataTypes.UUIDV4,
     },
     key_name: {
       type: DataTypes.STRING(64),

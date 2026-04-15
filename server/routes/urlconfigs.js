@@ -10,8 +10,8 @@ function resolveWebNodeId(bodyOrQuery) {
     b.web_node_id ??
     b.frontnodeId ??
     b.frontnode_id;
-  const n = typeof raw === 'number' ? raw : parseInt(String(raw ?? ''), 10);
-  return Number.isFinite(n) && n > 0 ? n : null;
+  const n = String(raw ?? "").trim();
+  return n || null;
 }
 
 // Create URL configs from deployment data
@@ -51,7 +51,7 @@ router.post('/create-from-deployment', async (req, res) => {
 router.get('/web-node/:webNodeId', async (req, res) => {
   try {
     const { webNodeId } = req.params;
-    const configs = await urlConfigService.getUrlConfigsByWebNode(parseInt(webNodeId, 10));
+    const configs = await urlConfigService.getUrlConfigsByWebNode(webNodeId);
     
     res.json({
       success: true,
@@ -72,7 +72,7 @@ router.get('/web-node/:webNodeId', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const config = await urlConfigService.getUrlConfigById(parseInt(id));
+    const config = await urlConfigService.getUrlConfigById(id);
     
     if (!config) {
       return res.status(404).json({
@@ -101,7 +101,7 @@ router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
     
-    const updatedConfig = await urlConfigService.updateUrlConfig(parseInt(id), updateData);
+    const updatedConfig = await urlConfigService.updateUrlConfig(id, updateData);
     
     res.json({
       success: true,
@@ -123,7 +123,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     
-    await urlConfigService.deleteUrlConfigById(parseInt(id, 10));
+    await urlConfigService.deleteUrlConfigById(id);
     
     res.json({
       success: true,

@@ -114,7 +114,10 @@ router.get("/me", async (req, res) => {
       return res.status(401).json({ error: "Invalid token" });
     }
 
-    const userId = parseInt(tokenParts[1]);
+    const userId = String(tokenParts[1] ?? "").trim();
+    if (!userId) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
     const user = await User.findByPk(userId, {
       attributes: ['id', 'username', 'email', 'first_name', 'last_name', 'role', 'status', 'last_login']
     });

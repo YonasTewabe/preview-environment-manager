@@ -85,7 +85,7 @@ async function createApiServiceWithAllocatedPort(rawPayload) {
       let profileId = defProf?.id ?? null;
       if (bodyPid != null && bodyPid !== "") {
         const p = await ProjectEnvProfile.findOne({
-          where: { id: Number(bodyPid), project_id: project.id },
+          where: { id: String(bodyPid).trim(), project_id: project.id },
         });
         if (p) profileId = p.id;
       }
@@ -280,7 +280,7 @@ router.get("/export/project/:projectId", async (req, res) => {
         totalServices: backendServices.length,
         totalBranches: backendServices.length,
         exportedAt: new Date().toISOString(),
-        projectId: parseInt(projectId)
+        projectId
       }
     };
 
@@ -547,8 +547,8 @@ router.get("/project/:projectId", async (req, res) => {
 // GET /api/backendnodes/:id — single node (for detail page & legacy redirects). Must stay after /project/:projectId.
 router.get("/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
-    if (Number.isNaN(id)) {
+    const id = String(req.params.id ?? "").trim();
+    if (!id) {
       return res.status(400).json({ error: "Invalid id" });
     }
     const backendNode = await Node.findOne({

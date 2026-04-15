@@ -28,10 +28,7 @@ async function envProfileNameTaken(projectId, nameTrimmed, excludeProfileId) {
     attributes: ["id", "name"],
   });
   for (const r of rows) {
-    if (
-      excludeProfileId != null &&
-      Number(r.id) === Number(excludeProfileId)
-    ) {
+    if (excludeProfileId != null && String(r.id) === String(excludeProfileId)) {
       continue;
     }
     if (String(r.name ?? "").trim().toLowerCase() === want) {
@@ -55,8 +52,8 @@ async function findFirstDuplicateProjectField(payload, excludeProjectId) {
   const envNorm = String(payload.env_name ?? "").trim().toLowerCase();
 
   const idFilter =
-    excludeProjectId != null && Number.isFinite(Number(excludeProjectId))
-      ? { id: { [Op.ne]: Number(excludeProjectId) } }
+    excludeProjectId != null && String(excludeProjectId).trim()
+      ? { id: { [Op.ne]: String(excludeProjectId).trim() } }
       : {};
 
   const rows = await Project.findAll({
@@ -178,8 +175,8 @@ async function getNodeCountsByProjectIds(projectIds) {
   const ids = [
     ...new Set(
       (projectIds || [])
-        .map((id) => Number(id))
-        .filter((n) => Number.isFinite(n)),
+        .map((id) => String(id ?? "").trim())
+        .filter(Boolean),
     ),
   ];
   if (ids.length === 0) return {};
@@ -192,10 +189,10 @@ async function getNodeCountsByProjectIds(projectIds) {
     group: ["project_id"],
     raw: true,
   });
-  /** @type {Record<number, number>} */
+  /** @type {Record<string, number>} */
   const map = {};
   for (const r of rows) {
-    map[Number(r.project_id)] = Number(r.cnt) || 0;
+    map[String(r.project_id)] = Number(r.cnt) || 0;
   }
   return map;
 }
@@ -331,8 +328,8 @@ router.post("/", async (req, res) => {
   try {
     const { name, description, repository_url, created_by, short_code, env_name, tag: tagRaw } = req.body;
   
-    if (!name || !repository_url || !short_code || !env_name) {
-      return res.status(400).json({ error: "Name, repository_url, short_code, and env_name are required" });
+    if (!name || !repository_url || !short_code || !env_name || !created_by) {
+      return res.status(400).json({ error: "Name, repository_url, short_code, env_name, and created_by are required" });
     }
 
     const tagNorm = String(tagRaw ?? 'frontend').toLowerCase();
@@ -364,7 +361,7 @@ router.post("/", async (req, res) => {
       repository_url: repoNorm,
       tag,
       env_name: envNorm,
-      created_by: Number.parseInt(created_by, 10) || 1,
+      created_by: String(created_by).trim(),
       short_code: shortNorm,
     });
 
@@ -748,8 +745,8 @@ router.patch("/:id/env-profiles/:profileId", async (req, res) => {
   try {
     const project = await findActiveProjectByPk(req.params.id);
     if (!project) return res.status(404).json({ error: "Project not found" });
-    const pid = parseInt(req.params.profileId, 10);
-    if (!Number.isFinite(pid)) {
+    const pid = String(req.params.profileId ?? "").trim();
+    if (!pid) {
       return res.status(400).json({ error: "Invalid profile id" });
     }
     const row = await ProjectEnvProfile.findOne({
@@ -810,8 +807,8 @@ router.delete("/:id/env-profiles/:profileId", async (req, res) => {
   try {
     const project = await findActiveProjectByPk(req.params.id);
     if (!project) return res.status(404).json({ error: "Project not found" });
-    const pid = parseInt(req.params.profileId, 10);
-    if (!Number.isFinite(pid)) {
+    const pid = String(req.params.profileId ?? "").trim();
+    if (!pid) {
       return res.status(400).json({ error: "Invalid profile id" });
     }
     const row = await ProjectEnvProfile.findOne({

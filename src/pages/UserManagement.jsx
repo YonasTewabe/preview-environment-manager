@@ -56,7 +56,7 @@ const UserManagement = () => {
   });
 
   // React Query hooks
-  const { data: usersData, isLoading, isError, error, refetch } = useUsers();
+  const { data: usersData, isLoading } = useUsers();
 
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
@@ -156,11 +156,6 @@ const UserManagement = () => {
       current: paginationInfo.current,
       pageSize: paginationInfo.pageSize,
     });
-  };
-
-  // Handle refresh
-  const handleRefresh = () => {
-    refetch();
   };
 
   // Table columns configuration
@@ -272,15 +267,6 @@ const UserManagement = () => {
         </div>
         <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
           <Button
-            icon={<ReloadOutlined />}
-            onClick={handleRefresh}
-            size="large"
-            loading={isLoading}
-            className="w-full sm:w-auto"
-          >
-            Refresh
-          </Button>
-          <Button
             type="primary"
             icon={<PlusOutlined />}
             onClick={handleCreateUser}
@@ -292,26 +278,6 @@ const UserManagement = () => {
           </Button>
         </div>
       </div>
-
-      {isError && (
-        <Card className="border border-red-200 bg-red-50 dark:border-red-800/80 dark:bg-red-950/40">
-          <div className="text-red-600 dark:text-red-400">
-            <p className="font-medium">Error loading users</p>
-            <p className="text-sm">
-              {error?.message || "An unexpected error occurred"}
-            </p>
-            <Button
-              type="primary"
-              danger
-              size="small"
-              onClick={handleRefresh}
-              className="mt-2"
-            >
-              Retry
-            </Button>
-          </div>
-        </Card>
-      )}
 
       <Card className="mb-4 border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">

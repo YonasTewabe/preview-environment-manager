@@ -8,8 +8,8 @@ export async function getDefaultEnvProfile(projectId) {
 
 export async function resolveProfileIdForProject(projectId, profileId) {
   if (profileId != null && profileId !== "") {
-    const id = Number(profileId);
-    if (!Number.isFinite(id)) return null;
+    const id = String(profileId).trim();
+    if (!id) return null;
     const row = await ProjectEnvProfile.findOne({
       where: { id, project_id: projectId },
     });

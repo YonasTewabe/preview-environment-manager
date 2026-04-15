@@ -17,12 +17,12 @@ class Environment extends Model {
 Environment.init(
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       primaryKey: true,
-      autoIncrement: true,
+      defaultValue: DataTypes.UUIDV4,
     },
     project_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
       references: {
         model: "projects",
@@ -32,7 +32,7 @@ Environment.init(
       onUpdate: "CASCADE",
     },
     profile_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
       references: {
         model: "project_env_profiles",

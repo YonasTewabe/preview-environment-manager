@@ -93,8 +93,8 @@ async function loadPreviewServiceDetail(id, role) {
 /** GET /api/node/:id — any active preview node by primary key */
 router.get("/:id", async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
-    if (Number.isNaN(id)) {
+    const id = String(req.params.id ?? "").trim();
+    if (!id) {
       return res.status(400).json({ error: "Invalid id" });
     }
 
@@ -117,7 +117,7 @@ router.get("/:id", async (req, res) => {
       const resolvedProfile = await resolveProfileIdForNode(previewNode);
       if (Array.isArray(plain.envOverrides) && resolvedProfile != null) {
         plain.envOverrides = plain.envOverrides.filter(
-          (e) => Number(e.project_env_profile_id) === Number(resolvedProfile),
+          (e) => String(e.project_env_profile_id) === String(resolvedProfile),
         );
       }
       return res.json(plain);

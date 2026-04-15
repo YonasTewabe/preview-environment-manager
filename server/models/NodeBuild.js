@@ -5,12 +5,12 @@ const NodeBuild = sequelize.define(
   "NodeBuild",
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       primaryKey: true,
-      autoIncrement: true,
+      defaultValue: DataTypes.UUIDV4,
     },
     node_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
       references: { model: "nodes", key: "id" },
       onDelete: "CASCADE",

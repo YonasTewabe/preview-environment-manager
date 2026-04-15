@@ -6,22 +6,22 @@ const Node = sequelize.define(
   "Node",
   {
     id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       primaryKey: true,
-      autoIncrement: true,
+      defaultValue: DataTypes.UUIDV4,
     },
     project_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
       references: { model: "projects", key: "id" },
     },
     created_by: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: false,
       references: { model: "users", key: "id" },
     },
     parent_node_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: true,
       references: { model: "nodes", key: "id" },
       onDelete: "CASCADE",
@@ -66,7 +66,7 @@ const Node = sequelize.define(
       allowNull: true,
     },
     project_env_profile_id: {
-      type: DataTypes.INTEGER,
+      type: DataTypes.UUID,
       allowNull: true,
       references: { model: "project_env_profiles", key: "id" },
       onDelete: "SET NULL",

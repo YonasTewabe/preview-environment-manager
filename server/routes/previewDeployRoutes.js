@@ -31,8 +31,8 @@ const PREVIEW_DEPLOY = {
 /** profileId from query/body must exist on this project */
 async function resolveExplicitNodeEnvProfileId(node, requested) {
   if (requested == null || requested === "") return null;
-  const id = Number(requested);
-  if (!Number.isFinite(id)) return null;
+  const id = String(requested).trim();
+  if (!id) return null;
   const row = await ProjectEnvProfile.findOne({
     where: { id, project_id: node.project_id },
   });
@@ -92,8 +92,8 @@ router.get("/", async (req, res) => {
 // GET …/:id/build-history
 router.get("/:id/build-history", async (req, res) => {
   try {
-    const id = parseInt(req.params.id, 10);
-    if (!Number.isFinite(id)) {
+    const id = String(req.params.id ?? "").trim();
+    if (!id) {
       return res.status(400).json({ error: "Invalid node id" });
     }
     const node = await Node.findOne({ where: { id, ...PREVIEW_DEPLOY } });
@@ -141,7 +141,7 @@ router.get("/:id/build-history", async (req, res) => {
       msg.includes("jenkins_build_number")
     ) {
       try {
-        const id = parseInt(req.params.id, 10);
+        const id = String(req.params.id ?? "").trim();
         const rows = await NodeBuild.findAll({
           where: { node_id: id },
           order: [["built_at", "DESC"]],
@@ -167,7 +167,7 @@ router.get("/:id/build-history", async (req, res) => {
       msg.includes("status")
     ) {
       try {
-        const id = parseInt(req.params.id, 10);
+        const id = String(req.params.id ?? "").trim();
         const rows = await NodeBuild.findAll({
           where: { node_id: id },
           order: [["built_at", "DESC"]],
@@ -257,7 +257,7 @@ router.get("/:id", async (req, res) => {
     const resolvedProfile = await resolveProfileIdForNode(webNode);
     if (Array.isArray(plain.envOverrides) && resolvedProfile != null) {
       plain.envOverrides = plain.envOverrides.filter(
-        (e) => Number(e.project_env_profile_id) === Number(resolvedProfile),
+        (e) => String(e.project_env_profile_id) === String(resolvedProfile),
       );
     }
 
@@ -277,8 +277,8 @@ router.get("/:id", async (req, res) => {
 // GET …/:id/env-vars?profileId=optional
 router.get("/:id/env-vars", async (req, res) => {
   try {
-    const node_id = parseInt(req.params.id, 10);
-    if (!Number.isFinite(node_id)) {
+    const node_id = String(req.params.id ?? "").trim();
+    if (!node_id) {
       return res.status(400).json({ error: "Invalid node id" });
     }
     const node = await Node.findOne({
@@ -323,7 +323,7 @@ router.get("/:id/env-vars", async (req, res) => {
 // POST …/:id/env-vars (upsert)
 router.post("/:id/env-vars", async (req, res) => {
   try {
-    const node_id = parseInt(req.params.id, 10);
+    const node_id = String(req.params.id ?? "").trim();
     const { key, value } = req.body || {};
     if (!key) return res.status(400).json({ error: "key is required" });
     const envKey = String(key).trim();
@@ -408,7 +408,7 @@ router.post("/:id/env-vars", async (req, res) => {
 // PUT …/:id/env-vars/:key?profileId=
 router.put("/:id/env-vars/:key", async (req, res) => {
   try {
-    const node_id = parseInt(req.params.id, 10);
+    const node_id = String(req.params.id ?? "").trim();
     const envKey = String(req.params.key || '').trim();
     if (!envKey) return res.status(400).json({ error: "key param is required" });
     const { value } = req.body || {};
@@ -450,7 +450,7 @@ router.put("/:id/env-vars/:key", async (req, res) => {
 // DELETE …/:id/env-vars/:key?profileId=
 router.delete("/:id/env-vars/:key", async (req, res) => {
   try {
-    const node_id = parseInt(req.params.id, 10);
+    const node_id = String(req.params.id ?? "").trim();
     const envKey = String(req.params.key || '').trim();
     if (!envKey) return res.status(400).json({ error: "key param is required" });
 
@@ -558,7 +558,7 @@ router.post("/", async (req, res) => {
     if (bodyProfileId != null && bodyProfileId !== "") {
       const p = await ProjectEnvProfile.findOne({
         where: {
-          id: Number(bodyProfileId),
+          id: String(bodyProfileId).trim(),
           project_id: project.id,
         },
       });
@@ -684,8 +684,8 @@ router.put("/:id", async (req, res) => {
       project_id,
     };
     if (project_env_profile_id !== undefined) {
-      const pid = Number(project_env_profile_id);
-      if (Number.isFinite(pid)) {
+      const pid = String(project_env_profile_id ?? "").trim();
+      if (pid) {
         const prof = await ProjectEnvProfile.findOne({
           where: {
             id: pid,

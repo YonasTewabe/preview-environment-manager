@@ -1,4 +1,5 @@
 import { Node, Project, ProjectEnvProfile } from '../models/index.js';
+import crypto from "crypto";
 
 export function normalizeUrlConfigList(raw) {
   if (raw == null) return [];
@@ -15,8 +16,11 @@ export function normalizeUrlConfigList(raw) {
 }
 
 function nextConfigId(existing) {
-  const nums = existing.map((c) => Number(c.id)).filter((n) => Number.isFinite(n));
-  return nums.length ? Math.max(...nums) + 1 : 1;
+  const ids = existing
+    .map((c) => String(c.id ?? "").trim())
+    .filter(Boolean);
+  if (!ids.length) return crypto.randomUUID();
+  return crypto.randomUUID();
 }
 
 class UrlConfigService {
@@ -94,15 +98,15 @@ class UrlConfigService {
 
   /** Find frontend node that holds url config id; return { node, list, index } */
   async findConfigHolder(configId) {
-    const cid = parseInt(configId, 10);
-    if (!Number.isFinite(cid)) return null;
+    const cid = String(configId ?? "").trim();
+    if (!cid) return null;
     const nodes = await Node.findAll({
       where: { role: 'frontend', is_deleted: false },
       attributes: ['id', 'url_configs'],
     });
     for (const n of nodes) {
       const list = normalizeUrlConfigList(n.url_configs);
-      const idx = list.findIndex((c) => Number(c.id) === cid);
+      const idx = list.findIndex((c) => String(c.id) === cid);
       if (idx >= 0) return { node: n, list, idx };
     }
     return null;

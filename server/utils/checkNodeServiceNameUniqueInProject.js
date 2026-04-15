@@ -14,15 +14,15 @@ export async function checkNodeServiceNameUniqueInProject(
   excludeNodeId,
   branchName,
 ) {
-  const pid = Number.parseInt(String(projectId), 10);
+  const pid = String(projectId ?? "").trim();
   const sn = String(serviceName ?? "").trim();
-  if (!Number.isFinite(pid) || pid <= 0) {
+  if (!pid) {
     return { ok: true };
   }
 
   const idFilter =
-    excludeNodeId != null && Number.isFinite(Number(excludeNodeId))
-      ? { id: { [Op.ne]: Number(excludeNodeId) } }
+    excludeNodeId != null && String(excludeNodeId).trim()
+      ? { id: { [Op.ne]: String(excludeNodeId).trim() } }
       : {};
 
   if (sn) {
