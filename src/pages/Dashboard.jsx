@@ -11,7 +11,6 @@ import {
 import StatsCard from "../components/Dashboard/StatsCard";
 import { useAuth } from "../contexts/AuthContext";
 import { api } from "../services/projectService";
-import { useTheme } from "../contexts/ThemeContext";
 
 const { Title, Text } = Typography;
 
@@ -61,7 +60,6 @@ function countBuildOutcomes(items) {
 
 const Dashboard = () => {
   const { user } = useAuth();
-  const { isDark } = useTheme();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalProjects: 0,
@@ -85,45 +83,38 @@ const Dashboard = () => {
     return `${Math.floor(diffInSeconds / 86400)} days ago`;
   };
 
-  const formatDuration = (startDate, endDate) => {
-    if (!startDate || !endDate) return "N/A";
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()))
-      return "N/A";
-    const diffInSeconds = Math.floor((end - start) / 1000);
-    if (diffInSeconds < 60) return `${diffInSeconds}s`;
-    const minutes = Math.floor(diffInSeconds / 60);
-    const seconds = diffInSeconds % 60;
-    return `${minutes}m ${seconds}s`;
-  };
-
   const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
 
-      const [statsRes, webRes, apiRes] = await Promise.all([
+      const [statsRes, webRes, apiRes, projectsRes] = await Promise.all([
         api.get("stats").catch(() => ({ data: null })),
         api.get("preview-nodes").catch(() => ({ data: {} })),
         api.get("preview-services/summary").catch(() => ({
           data: { services: [] },
         })),
+        api.get("projects").catch(() => ({ data: [] })),
       ]);
 
       const statsPayload =
         statsRes?.data && typeof statsRes.data === "object"
           ? statsRes.data
           : {};
-      const webServices = pickServices(webRes.data).filter(
-        (s) => !s.is_deleted,
+      const services = [
+        ...pickServices(webRes.data).filter((s) => !s.is_deleted),
+        ...pickServices(apiRes.data),
+      ];
+      const projectRows = Array.isArray(projectsRes?.data) ? projectsRes.data : [];
+      const projectNameById = new Map(
+        projectRows.map((p) => [String(p.id), p.name]).filter(([, n]) => !!n),
       );
-      const apiServices = pickServices(apiRes.data);
-      const allBuildItems = [...webServices, ...apiServices];
+      const allBuildItems = services;
       const computedOutcomes = countBuildOutcomes(allBuildItems);
 
       const payloadTotalProjects = Number(statsPayload.totalProjects) || 0;
       const payloadTotalNodes = Number(statsPayload.totalNodes) || 0;
-      const payloadSuccessfulBuilds = Number(statsPayload.successfulBuilds) || 0;
+      const payloadSuccessfulBuilds =
+        Number(statsPayload.successfulBuilds) || 0;
       const payloadFailedBuilds = Number(statsPayload.failedBuilds) || 0;
 
       setStats({
@@ -140,7 +131,7 @@ const Dashboard = () => {
 
       const recentBuildsList = [];
 
-      apiServices.forEach((service, index) => {
+      services.forEach((service, index) => {
         const buildDate =
           service.updated_at ||
           service.last_build_at ||
@@ -148,39 +139,21 @@ const Dashboard = () => {
           service.created_at;
         const t = buildDate ? new Date(buildDate).getTime() : 0;
         recentBuildsList.push({
-          key: `api-${service.id ?? index}`,
+          key: `service-${service.id ?? index}`,
           nodeId: service.id,
           projectId: service.project_id ?? service.projectId,
+          projectName:
+            service.project?.name ||
+            service.project_name ||
+            service.projectName ||
+            projectNameById.get(
+              String(service.project_id ?? service.projectId ?? ""),
+            ) ||
+            "Unknown project",
           service:
             service.service_name || service.serviceName || "Unknown service",
           branch: service.branch_name || service.branchName || "main",
-          duration:
-            service.created_at && (service.updated_at || service.last_build_at)
-              ? formatDuration(
-                  service.created_at,
-                  service.updated_at || service.last_build_at,
-                )
-              : "N/A",
-          timestamp: formatTimeAgo(buildDate),
-          buildDate: t,
-        });
-      });
-
-      webServices.forEach((service, index) => {
-        const buildDate =
-          service.updated_at ||
-          service.last_build_at ||
-          service.last_build_date ||
-          service.created_at;
-        const t = buildDate ? new Date(buildDate).getTime() : 0;
-        recentBuildsList.push({
-          key: `web-${service.id ?? index}`,
-          nodeId: service.id,
-          projectId: service.project_id ?? service.projectId,
-          service:
-            service.service_name || service.serviceName || "Unknown service",
-          branch: service.branch_name || service.branchName || "main",
-          duration: "N/A",
+          
           timestamp: formatTimeAgo(buildDate),
           buildDate: t,
         });
@@ -207,16 +180,19 @@ const Dashboard = () => {
   }, [fetchDashboardData]);
 
   return (
-    <div className="space-y-6 text-black dark:text-white">
+    <div className="space-y-6" style={{ color: "var(--app-text)" }}>
       <div className="mb-6">
         <Title
           level={1}
-          className="!mb-1 !text-3xl sm:!text-4xl !text-blue-900 dark:!text-blue-400 !font-bold"
+          className="!mb-1 !text-3xl sm:!text-4xl !text-blue-900 dark:!text-blue-400"
         >
           Dashboard
         </Title>
-        <Text className="mb-1 block text-base sm:text-lg font-bold text-black dark:text-white">
-          Welcome back, {user?.first_name || user?.username || "there"}
+        <Text
+          className="mb-1 block text-base font-bold sm:text-lg"
+          style={{ color: "var(--app-text)" }}
+        >
+          Welcome back, {user?.first_name}
         </Text>
       </div>
 
@@ -267,7 +243,7 @@ const Dashboard = () => {
                 Recent Builds
               </span>
             }
-            className="border-zinc-200/80 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+            className="shadow-sm"
             loading={loading}
           >
             {recentBuilds.length > 0 ? (
@@ -282,7 +258,8 @@ const Dashboard = () => {
                     ? `/projects/${build.projectId}/nodes/${build.nodeId}`
                     : null;
 
-                  const rowClass = `block rounded-lg border border-zinc-200/80 p-3 sm:p-4 transition-all hover:shadow-md dark:border-zinc-800 ${isDark ? "dark:!bg-zinc-900" : "!bg-white"}`;
+                  const rowClass =
+                    "block rounded-xl border p-3 transition-all hover:-translate-y-0.5 hover:shadow-md sm:p-4";
                   const rowInner = (
                     <div className="flex min-w-0 flex-1 items-start gap-3">
                       <div className="min-w-0 flex-1">
@@ -296,16 +273,11 @@ const Dashboard = () => {
                           <Tag color="blue" className="text-xs">
                             {build.branch}
                           </Tag>
+                          <Tag color="red" className="text-xs">
+                            {build.projectName}
+                          </Tag>
                         </div>
                         <div className="flex flex-wrap items-center gap-3 text-sm">
-                          {build.duration !== "N/A" && (
-                            <div className="flex items-center gap-1">
-                              <ClockCircleOutlined className="text-gray-400" />
-                              <Text type="secondary" className="text-xs">
-                                {build.duration}
-                              </Text>
-                            </div>
-                          )}
                           <Text type="secondary" className="text-xs">
                             {build.timestamp}
                           </Text>
@@ -319,6 +291,10 @@ const Dashboard = () => {
                       key={build.key}
                       to={detailPath}
                       className={`${rowClass} text-inherit no-underline hover:text-inherit focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-zinc-900`}
+                      style={{
+                        borderColor: "var(--app-border)",
+                        backgroundColor: "var(--app-surface)",
+                      }}
                     >
                       {rowInner}
                     </Link>
@@ -326,6 +302,10 @@ const Dashboard = () => {
                     <div
                       key={build.key}
                       className={`${rowClass} cursor-default`}
+                      style={{
+                        borderColor: "var(--app-border)",
+                        backgroundColor: "var(--app-surface)",
+                      }}
                     >
                       {rowInner}
                     </div>

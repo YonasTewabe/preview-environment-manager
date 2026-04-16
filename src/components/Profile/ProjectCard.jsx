@@ -1,6 +1,5 @@
 import React, { useState, useRef } from "react";
 import { Tag, Button, Dropdown, Popover, Space } from "antd";
-import { previewKindShortLabel } from "../../utils/projectServiceKind";
 import { EditOutlined, DeleteOutlined, MoreOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
@@ -17,6 +16,13 @@ const ProjectCard = ({
   const moreWrapRef = useRef(null);
   const nodeCount =
     Number(project.nodes_count ?? project.node_count ?? 0) || 0;
+  const projectTag = String(project.tag ?? "").toLowerCase();
+  const projectTagLabel =
+    projectTag === "backend"
+      ? "Backend"
+      : projectTag === "frontend"
+        ? "Frontend"
+        : "—";
 
   const menuItems = [
     ...(canEdit
@@ -83,7 +89,11 @@ const ProjectCard = ({
 
   return (
     <div
-      className="p-5 bg-transparent border-2 border-gray-200 h-full hover:shadow-md transition-shadow duration-300 border border-gray-200  rounded-lg cursor-pointer"
+      className="h-full cursor-pointer rounded-lg border p-5 transition-shadow duration-300 hover:shadow-md"
+      style={{
+        backgroundColor: "var(--app-surface)",
+        borderColor: "var(--app-border)",
+      }}
       onClick={() => navigate(`/projects/${project.id}`)}
       role="presentation"
     >
@@ -91,7 +101,7 @@ const ProjectCard = ({
         {/* Title and Options Menu */}
         <div className="flex items-start justify-between mb-2">
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <h3 className="font-bold text-gray-900 text-xl mb-0">
+            <h3 className="mb-0 text-xl font-bold" style={{ color: "var(--app-text)" }}>
               {project.name}
             </h3>
           </div>
@@ -124,7 +134,8 @@ const ProjectCard = ({
                   <Button
                     type="text"
                     icon={<MoreOutlined />}
-                    className="text-gray-500 hover:text-gray-700 -mt-1"
+                    className="-mt-1"
+                    style={{ color: "var(--app-text-muted)" }}
                     onClick={(e) => e.stopPropagation()}
                     aria-label="Project actions"
                   />
@@ -140,18 +151,21 @@ const ProjectCard = ({
             color={project.tag === "backend" ? "purple" : "blue"}
             className="m-0 text-xs"
           >
-            {previewKindShortLabel(project.tag)}
+            {projectTagLabel}
           </Tag>
-          <span className="shrink-0 text-right text-sm text-gray-900">
+          <span
+            className="shrink-0 text-right text-sm"
+            style={{ color: "var(--app-text)" }}
+          >
             {nodeCount} {nodeCount === 1 ? "node" : "nodes"}
           </span>
         </div>
 
         {/* Separator */}
-        <hr className="border-gray-200 my-3" />
+        <hr className="my-3" style={{ borderColor: "var(--app-border)" }} />
 
         {/* Description */}
-        <p className="text-gray-500 text-sm leading-relaxed">
+        <p className="text-sm leading-relaxed" style={{ color: "var(--app-text-muted)" }}>
           {project.description || "No description available"}
         </p>
       </div>

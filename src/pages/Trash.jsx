@@ -1,12 +1,21 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Input, Popconfirm, Space, Table, Tabs, Tag } from "antd";
 import { projectService } from "../services/projectService";
 
+function stripDeletedToken(value) {
+  return String(value ?? "")
+    .replace(/\s*\[deleted[^\]]*\]\s*/gi, " ")
+    .replace(/#deleted-[a-z0-9]+/gi, "")
+    .replace(/-deleted-[a-z0-9]+/gi, "")
+    .replace(/-d-[a-z0-9]+/gi, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 const Trash = () => {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
-  const [nodeSearchText, setNodeSearchText] = useState("");
 
   const {
     data: trashedProjects = [],
@@ -78,12 +87,23 @@ const Trash = () => {
 
   const projectColumns = useMemo(
     () => [
-      { title: "Project", dataIndex: "name", key: "name" },
-      { title: "Short code", dataIndex: "short_code", key: "short_code" },
+      {
+        title: "Project",
+        dataIndex: "name",
+        key: "name",
+        render: (value) => stripDeletedToken(value) || "-",
+      },
+      {
+        title: "Short code",
+        dataIndex: "short_code",
+        key: "short_code",
+        render: (value) => stripDeletedToken(value) || "-",
+      },
       {
         title: "Repository",
         dataIndex: "repository_url",
         key: "repository_url",
+        render: (value) => stripDeletedToken(value) || "-",
       },
       {
         title: "Actions",
@@ -117,22 +137,22 @@ const Trash = () => {
   const nodeColumns = useMemo(
     () => [
       {
-        title: "Project Name",
-        key: "project_name",
-        render: (_, row) => row.project?.name || "-",
+        title: "Node Name",
+        dataIndex: "service_name",
+        key: "service_name",
+        render: (value) => stripDeletedToken(value) || "-",
       },
-      { title: "Node Name", dataIndex: "service_name", key: "service_name" },
       {
         title: "Node Branch",
         dataIndex: "branch_name",
         key: "branch_name",
-        render: (value) => value || "-",
+        render: (value) => stripDeletedToken(value) || "-",
       },
       {
-        title: "Type",
-        dataIndex: "role",
-        key: "role",
-        render: (value) => <Tag>{value}</Tag>,
+        title: "Project",
+        dataIndex: "project_name",
+        key: "project_name",
+        render: (_, row) => stripDeletedToken(row.project?.name) || "-",
       },
       {
         title: "Actions",
@@ -147,7 +167,6 @@ const Trash = () => {
             </Button>
             <Popconfirm
               title="Permanently delete this node?"
-              description="This cannot be undone."
               okText="Delete permanently"
               okButtonProps={{ danger: true }}
               onConfirm={() => permanentDeleteNodeMutation.mutate(row.id)}
@@ -162,16 +181,6 @@ const Trash = () => {
     ],
     [permanentDeleteNodeMutation, restoreNodeMutation],
   );
-
-  const filteredNodes = useMemo(() => {
-    const q = nodeSearchText.trim().toLowerCase();
-    if (!q) return trashedNodes;
-    return trashedNodes.filter((row) => {
-      const nodeName = String(row.service_name || "").toLowerCase();
-      const branchName = String(row.branch_name || "").toLowerCase();
-      return nodeName.includes(q) || branchName.includes(q);
-    });
-  }, [trashedNodes, nodeSearchText]);
 
   return (
     <div className="space-y-6 text-black dark:text-white">
@@ -193,18 +202,9 @@ const Trash = () => {
             label: `Nodes (${trashedNodes.length})`,
             children: (
               <div className="space-y-3">
-                <Space wrap>
-                  <Input
-                    allowClear
-                    value={nodeSearchText}
-                    onChange={(e) => setNodeSearchText(e.target.value)}
-                    placeholder="Search node name or branch"
-                    style={{ width: "100%", maxWidth: 320 }}
-                  />
-                </Space>
                 <Table
                   rowKey="id"
-                  dataSource={filteredNodes}
+                  dataSource={trashedNodes}
                   columns={nodeColumns}
                   loading={nodesLoading}
                   pagination={{ pageSize: 10 }}
