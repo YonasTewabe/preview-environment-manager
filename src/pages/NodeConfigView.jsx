@@ -46,7 +46,6 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useTheme } from "../contexts/ThemeContext";
 import {
   jenkinsJobFolderUrl,
   JENKINS_JOB_PREVIEW,
@@ -62,41 +61,6 @@ import {
 const { Title, Text } = Typography;
 const { Content } = Layout;
 const { Panel } = Collapse;
-
-const buildUrlConfigsFromEnvVars = (envVars) => {
-  const list = Array.isArray(envVars) ? envVars : [];
-  return (
-    list
-      .filter((e) => typeof e?.key === "string")
-      .map((e) => ({ key: e.key, value: String(e.value ?? "") }))
-      // include either *_URL keys OR values that look like URLs
-      .filter(
-        (e) =>
-          e.key.toUpperCase().endsWith("_URL") ||
-          e.value.trim().startsWith("http://") ||
-          e.value.trim().startsWith("https://"),
-      )
-      .map((e) => {
-        let url = e.value.trim();
-        // remove trailing slashes
-        url = url.replace(/\/+$/, "");
-        // preserve old behavior: append /api/v1 when it's an http(s) URL and not already ending with /api/v1
-        if (
-          (url.startsWith("http://") || url.startsWith("https://")) &&
-          !url.endsWith("/api/v1")
-        ) {
-          url += "/api/v1";
-        }
-        return {
-          name: e.key,
-          url,
-          description: `From env ${e.key}`,
-          serviceType: "api",
-          defaultUrl: null,
-        };
-      })
-  );
-};
 
 function projectEnvVarsFetchUrl(projectId, profileId) {
   const base = `${import.meta.env.VITE_BACKEND_URL}projects/${projectId}/env-vars`;
@@ -338,7 +302,6 @@ export default function NodeConfigView({
   const id = routeNodeId ?? params.nodeId ?? params.id;
   const { token } = useAuth();
   const queryClient = useQueryClient();
-  const { isDark } = useTheme();
   const [isDeployModalVisible, setIsDeployModalVisible] = useState(false);
   const [deployProgress, setDeployProgress] = useState({
     stage: "",
@@ -386,9 +349,7 @@ export default function NodeConfigView({
       return;
     }
     const raw = selectedNode.project_env_profile_id;
-    setNodeProfileId(
-      raw != null && raw !== "" ? String(raw) : null,
-    );
+    setNodeProfileId(raw != null && raw !== "" ? String(raw) : null);
   }, [
     selectedNode?.id,
     isPreviewServiceNode,
@@ -567,25 +528,6 @@ export default function NodeConfigView({
       label: p.is_default ? `${p.name} (default)` : p.name,
     }));
   }, [projectEnvVarsResp?.env_profiles]);
-
-  const savedProfileDisplayName = useMemo(() => {
-    if (selectedNode?.envProfile?.name) return selectedNode.envProfile.name;
-    const list = projectEnvVarsResp?.env_profiles;
-    if (!Array.isArray(list)) return null;
-    if (savedExplicitProfileId != null) {
-      const hit = list.find(
-        (p) => String(p.id) === String(savedExplicitProfileId),
-      );
-      if (!hit) return null;
-      return hit.is_default ? `${hit.name} (default)` : hit.name;
-    }
-    const d = list.find((p) => p.is_default);
-    return d ? `${d.name} (default)` : null;
-  }, [
-    selectedNode?.envProfile?.name,
-    savedExplicitProfileId,
-    projectEnvVarsResp?.env_profiles,
-  ]);
 
   const saveNodeProfileSelection = async () => {
     if (!selectedNode?.id || !profileSelectionDirty) return;
@@ -936,7 +878,6 @@ export default function NodeConfigView({
         key,
         value,
       }));
-      const envUrlConfigs = buildUrlConfigsFromEnvVars(envVars);
 
       // Domain name for first deploy; rebuilt nodes may already have domain_name
       const nodePortNum = Number(selectedNode?.port);
@@ -993,43 +934,7 @@ export default function NodeConfigView({
           buildNumber: result.buildNumber,
         });
 
-        // Store URL configurations in the database
-        try {
-          const response = await fetch(
-            `${import.meta.env.VITE_BACKEND_URL}urlconfigs/create-from-deployment`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                urlConfigs: envUrlConfigs,
-                webNodeId: selectedNode?.id,
-                frontnodeId: selectedNode?.id,
-              }),
-            },
-          );
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.warn("Failed to save URL configs to database:", errorText);
-            message.warning(
-              "Deployment succeeded but failed to save URL configurations",
-            );
-          } else {
-            message.success("URL configurations saved successfully");
-            // Refresh the frontend node data to get updated URL configs
-            invalidateNodeDetailQueries();
-          }
-        } catch (error) {
-          console.error("Error saving URL configs to database:", error);
-          message.warning(
-            "Deployment succeeded but failed to save URL configurations",
-          );
-        }
-
-        // Update selectedNode with deployment results and urlConfigs
+        // Update selectedNode with deployment results
         if (selectedNode && result.artifactData) {
           // Update deployment details for modal display
           setDeploymentDetails({
@@ -1055,7 +960,7 @@ export default function NodeConfigView({
               domain_name: deployParams.DOMAIN_NAME,
               project_id: selectedNode?.project_id,
             };
-            updatePreviewNodeMutation.mutateAsync({
+            await updatePreviewNodeMutation.mutateAsync({
               id: selectedNode.id,
               data: nodeForStorage,
             });
@@ -1161,7 +1066,6 @@ export default function NodeConfigView({
         key,
         value,
       }));
-      const envUrlConfigs = buildUrlConfigsFromEnvVars(envVars);
 
       const rebuildPortNum = Number(selectedNode?.port);
       const rebuildFeSuffix =
@@ -1204,48 +1108,6 @@ export default function NodeConfigView({
         // Success callback
         async (jenkinsData) => {
           try {
-            // Store URL configurations in the database
-            try {
-              const response = await fetch(
-                `${import.meta.env.VITE_BACKEND_URL}urlconfigs/create-from-deployment`,
-                {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({
-                    urlConfigs: envUrlConfigs,
-                    webNodeId: selectedNode?.id,
-                    frontnodeId: selectedNode?.id,
-                  }),
-                },
-              );
-
-              if (!response.ok) {
-                const errorText = await response.text();
-                console.warn(
-                  "Failed to save URL configs to database:",
-                  errorText,
-                );
-                message.warning(
-                  "Rebuild succeeded but failed to save URL configurations",
-                );
-              } else {
-                message.success("URL configurations saved successfully");
-                // Refresh the frontend node data to get updated URL configs
-                invalidateNodeDetailQueries();
-              }
-            } catch (urlConfigError) {
-              console.error(
-                "Error saving URL configs to database:",
-                urlConfigError,
-              );
-              message.warning(
-                "Rebuild succeeded but failed to save URL configurations",
-              );
-            }
-
             // Update node with success data
             const updateData = {
               build_status: jenkinsData.result || "success",
@@ -1336,12 +1198,19 @@ export default function NodeConfigView({
           onClick={() =>
             navigate(`/projects/${routeProjectId ?? selectedNode?.project_id}`)
           }
-          className={`${isDark ? "dark:!text-white" : "!text-black"} !font-semibold !text-base sm:!text-lg`}
+          className="!font-semibold !text-base sm:!text-lg"
+          style={{ color: "var(--app-text)" }}
         >
           Back
         </Button>
       </div>
-      <Card className="bg-white p-4 border-b border-[#e2e8f0]">
+      <Card
+        className="p-4 border-b"
+        style={{
+          backgroundColor: "var(--app-surface)",
+          borderColor: "var(--app-border)",
+        }}
+      >
         <div
           data-node-header-actions=""
           style={{
@@ -1647,20 +1516,9 @@ export default function NodeConfigView({
                 </Text>
                 {envProfileSelectOptions.length > 0 ? (
                   <>
-                    <Text
-                      type="secondary"
-                      style={{
-                        display: "block",
-                        marginBottom: 10,
-                        fontSize: 13,
-                      }}
-                    >
-                      Select a profile to preview its base variables in the
-                      table below. Click <strong>Save profile</strong> to store
-                      this choice on the node (deploy uses the saved profile).
-                    </Text>
                     <Space wrap align="center">
                       <Select
+                        size="large"
                         style={{ minWidth: 260 }}
                         value={
                           nodeProfileId ??
@@ -1681,14 +1539,6 @@ export default function NodeConfigView({
                       </Button>
                     </Space>
                     <Space wrap style={{ marginTop: 10 }}>
-                      {savedProfileDisplayName ? (
-                        <Tag
-                          color="blue"
-                          style={{ marginInlineEnd: 0, borderRadius: "4px" }}
-                        >
-                          Saved on node: {savedProfileDisplayName}
-                        </Tag>
-                      ) : null}
                       {profileSelectionDirty ? (
                         <Tag
                           color="warning"
@@ -2003,7 +1853,7 @@ export default function NodeConfigView({
         buildProgress={buildProgress}
         onCancel={handleBuildModalCancel}
         onSuccess={handleBuildModalCancel}
-        inProgressTitle="Frontend Deployment Progress"
+        inProgressTitle="Deployment Progress"
         failedHeading="Deployment Failed"
         errorHeading="Deployment Error"
       />

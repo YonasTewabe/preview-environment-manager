@@ -16,7 +16,11 @@ import {
   getDefaultEnvProfile,
   resolveProfileIdForProject,
 } from "../utils/resolveProjectEnvProfile.js";
-import { refreshStatsAfterMutation } from "../services/statsService.js";
+import {
+  refreshStatsAfterMutation,
+  refreshSystemStats,
+} from "../services/statsService.js";
+import { deletePreviewDomainViaJenkins } from "../services/jenkinsDeletePreviewDomain.js";
 
 const router = express.Router();
 router.use(refreshStatsAfterMutation);
@@ -65,6 +69,58 @@ function normalizeRepositoryUrl(u) {
   return String(u ?? "")
     .trim()
     .replace(/\/+$/, "");
+}
+
+function tombstoneProjectUniqueFields(projectLike) {
+  const token = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+  const nameBase = String(projectLike?.name ?? "").trim() || "project";
+  const shortBase = String(projectLike?.short_code ?? "")
+    .trim()
+    .toLowerCase() || "proj";
+  const repoBase = normalizeRepositoryUrl(projectLike?.repository_url) || "deleted://project";
+  const envBase = String(projectLike?.env_name ?? "")
+    .trim()
+    .toLowerCase() || "env";
+  const shortSuffix = `-d-${token}`.slice(0, 18);
+  return {
+    name: `${nameBase} [deleted ${token}]`.slice(0, 255),
+    short_code: `${shortBase.slice(0, Math.max(2, 20 - shortSuffix.length))}${shortSuffix}`.slice(
+      0,
+      20,
+    ),
+    repository_url: `${repoBase}#deleted-${token}`.slice(0, 500),
+    env_name: `${envBase}-deleted-${token}`.slice(0, 255),
+    is_deleted: true,
+  };
+}
+
+async function releaseDeletedProjectUniqueConflicts(payload) {
+  const nameNorm = String(payload?.name ?? "").trim();
+  const shortNorm = String(payload?.short_code ?? "")
+    .trim()
+    .toLowerCase();
+  const repoNorm = normalizeRepositoryUrl(payload?.repository_url);
+  const envNorm = String(payload?.env_name ?? "")
+    .trim()
+    .toLowerCase();
+  if (!nameNorm && !shortNorm && !repoNorm && !envNorm) return;
+
+  const deletedRows = await Project.findAll({
+    where: { is_deleted: true },
+    attributes: ["id", "name", "short_code", "repository_url", "env_name"],
+  });
+
+  for (const p of deletedRows) {
+    const sameName = nameNorm && String(p.name ?? "").trim() === nameNorm;
+    const sameShort =
+      shortNorm && String(p.short_code ?? "").trim().toLowerCase() === shortNorm;
+    const sameRepo =
+      repoNorm && normalizeRepositoryUrl(p.repository_url) === repoNorm;
+    const sameEnv =
+      envNorm && String(p.env_name ?? "").trim().toLowerCase() === envNorm;
+    if (!(sameName || sameShort || sameRepo || sameEnv)) continue;
+    await p.update(tombstoneProjectUniqueFields(p));
+  }
 }
 
 /**
@@ -260,6 +316,27 @@ const projectDetailIncludes = [
   },
 ];
 
+async function listTrashedProjectsHandler(_req, res) {
+  try {
+    const projects = await Project.findAll({
+      where: { is_deleted: true },
+      attributes: { exclude: ["status"] },
+      include: [
+        {
+          model: User,
+          as: "creator",
+          attributes: ["id", "username", "email", "first_name", "last_name"],
+        },
+      ],
+      order: [["updated_at", "DESC"]],
+    });
+    res.json(projects.map((p) => sanitizeProject(p)));
+  } catch (error) {
+    console.error("Error fetching trashed projects:", error);
+    res.status(500).json({ error: "Failed to fetch trashed projects" });
+  }
+}
+
 // GET /api/projects - Get all projects
 router.get("/", async (req, res) => {
   try {
@@ -317,6 +394,9 @@ router.get("/", async (req, res) => {
 
 // GET /api/projects/:id - Get a specific project
 router.get("/:id", async (req, res) => {
+  if (String(req.params.id ?? "").toLowerCase() === "trash") {
+    return listTrashedProjectsHandler(req, res);
+  }
   try {
     const project = await findActiveProjectByPk(req.params.id, {
       attributes: { exclude: ["status"] },
@@ -421,6 +501,15 @@ router.post("/", async (req, res) => {
     if (dup) {
       return res.status(400).json({ error: dup.error, field: dup.field });
     }
+
+    // Compatibility path: older soft-deleted rows may still hold unique values.
+    // Tombstone those deleted rows so active project creation is not blocked.
+    await releaseDeletedProjectUniqueConflicts({
+      name: nameNorm,
+      short_code: shortNorm,
+      repository_url: repoNorm,
+      env_name: envNorm,
+    });
 
     const project = await Project.create({
       name: nameNorm,
@@ -569,13 +658,57 @@ router.delete("/:id", async (req, res) => {
     if (!project) {
       return res.status(404).json({ error: "Project not found" });
     }
+    const projectNodes = await Node.findAll({
+      where: { project_id: project.id, is_deleted: false },
+      attributes: ["id", "domain_name"],
+    });
+    const domainNames = [
+      ...new Set(
+        projectNodes
+          .map((n) => String(n.domain_name ?? "").trim())
+          .filter(Boolean),
+      ),
+    ];
+    /** @type {Array<{domain_name: string, success: boolean, message: string}>} */
+    const jenkinsCleanup = [];
+    for (const domainName of domainNames) {
+      try {
+        const result = await deletePreviewDomainViaJenkins(domainName);
+        jenkinsCleanup.push({
+          domain_name: domainName,
+          success: Boolean(result?.success),
+          message: String(result?.message ?? ""),
+        });
+      } catch (cleanupError) {
+        jenkinsCleanup.push({
+          domain_name: domainName,
+          success: false,
+          message: String(cleanupError?.message || cleanupError),
+        });
+      }
+    }
 
-    await project.update({ is_deleted: true });
+    await project.update({
+      ...tombstoneProjectUniqueFields(project),
+      is_deleted: true,
+    });
     await Node.update(
       { is_deleted: true, updated_at: new Date() },
       { where: { project_id: project.id } },
     );
-    res.json({ message: "Project moved to trash successfully" });
+    await refreshSystemStats();
+    const failedJenkinsCleanup = jenkinsCleanup.filter((x) => !x.success);
+    if (failedJenkinsCleanup.length > 0) {
+      return res.status(207).json({
+        message:
+          "Project moved to trash, but some Jenkins domain deletions failed.",
+        jenkins_cleanup: jenkinsCleanup,
+      });
+    }
+    return res.json({
+      message: "Project moved to trash successfully",
+      jenkins_cleanup: jenkinsCleanup,
+    });
   } catch (error) {
     console.error("Error deleting project:", error);
     res.status(500).json({ error: "Failed to delete project" });
@@ -584,24 +717,7 @@ router.delete("/:id", async (req, res) => {
 
 // GET /api/projects/trash - List deleted projects
 router.get("/trash", async (_req, res) => {
-  try {
-    const projects = await Project.findAll({
-      where: { is_deleted: true },
-      attributes: { exclude: ["status"] },
-      include: [
-        {
-          model: User,
-          as: "creator",
-          attributes: ["id", "username", "email", "first_name", "last_name"],
-        },
-      ],
-      order: [["updated_at", "DESC"]],
-    });
-    res.json(projects.map((p) => sanitizeProject(p)));
-  } catch (error) {
-    console.error("Error fetching trashed projects:", error);
-    res.status(500).json({ error: "Failed to fetch trashed projects" });
-  }
+  return listTrashedProjectsHandler(_req, res);
 });
 
 // PATCH /api/projects/:id/restore - Restore a soft-deleted project

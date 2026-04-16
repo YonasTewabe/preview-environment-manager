@@ -74,9 +74,29 @@ function toStatsDto(row) {
 
 async function computeStatsSnapshot() {
   const [totalProjects, totalEnvProfiles, totalEnvVars, nodes, buildRows] = await Promise.all([
-    Project.count(),
-    ProjectEnvProfile.count(),
-    Environment.count(),
+    Project.count({ where: { is_deleted: false } }),
+    ProjectEnvProfile.count({
+      include: [
+        {
+          model: Project,
+          as: "project",
+          attributes: [],
+          required: true,
+          where: { is_deleted: false },
+        },
+      ],
+    }),
+    Environment.count({
+      include: [
+        {
+          model: Project,
+          as: "project",
+          attributes: [],
+          required: true,
+          where: { is_deleted: false },
+        },
+      ],
+    }),
     Node.findAll({
       where: { is_deleted: false },
       attributes: ["build_status", "preview_link", "default_url", "deployment_url"],

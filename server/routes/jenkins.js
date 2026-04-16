@@ -1,7 +1,6 @@
 import express from "express";
 import axios from "axios";
 import { Op } from "sequelize";
-import urlConfigService from "../services/urlConfigService.js";
 import { sequelize } from "../config/database.js";
 import { Node, NodeBuild } from "../models/index.js";
 import { deletePreviewDomainViaJenkins } from "../services/jenkinsDeletePreviewDomain.js";
@@ -90,6 +89,19 @@ async function setPreviewNodeLastBuildAtNow(nodeId) {
   } catch (upErr) {
     console.warn(
       "⚠️ Failed to update nodes.last_build_at (trigger time):",
+      upErr?.message || upErr,
+    );
+  }
+}
+
+async function persistPreviewNodeDeploymentResult(nodeId, data = {}) {
+  const fid = String(nodeId ?? "").trim();
+  if (!fid) return;
+  try {
+    await Node.update(data, { where: { id: fid } });
+  } catch (upErr) {
+    console.warn(
+      "⚠️ Failed to persist preview node deployment result:",
       upErr?.message || upErr,
     );
   }
@@ -268,37 +280,6 @@ function normalizeBuildTag(raw) {
   const t = String(raw ?? "").toLowerCase().trim();
   if (t === "frontend" || t === "backend") return t;
   return "";
-}
-
-/** Shape URL config rows from merged env [{ key, value }, …] for DB (same rules as legacy URL_CONFIGS). */
-function urlConfigsFromEnvJsonArray(envJsonArray) {
-  if (!Array.isArray(envJsonArray)) return [];
-  return envJsonArray
-    .filter((cfg) => {
-      const k = cfg?.key ?? cfg?.name;
-      const v = String(cfg?.value ?? cfg?.url ?? "").trim();
-      if (typeof k !== "string" || !k) return false;
-      if (k.toUpperCase().endsWith("_URL")) return true;
-      return v.startsWith("http://") || v.startsWith("https://");
-    })
-    .map((cfg) => {
-      const name = cfg.key ?? cfg.name;
-      let url = String(cfg?.value ?? cfg?.url ?? "").trim();
-      const isHttp =
-        url.startsWith("http://") || url.startsWith("https://");
-      if (isHttp) {
-        url = url.replace(/\/+$/, "");
-        if (!url.endsWith("/api/v1")) url += "/api/v1";
-      }
-      return {
-        name,
-        url,
-        description: `From env ${name}`,
-        serviceType:
-          isHttp || String(name).toUpperCase().endsWith("_URL") ? "api" : "env",
-        defaultUrl: null,
-      };
-    });
 }
 
 /** Jenkins Location header may be relative to Jenkins base URL. */
@@ -530,6 +511,13 @@ async function handleUnifiedPreviewBuild(req, res) {
               builtAtFail,
               buildData.result,
             );
+            await persistPreviewNodeDeploymentResult(previewNodeId, {
+              build_status: normalizeFrontendBuildStatus(buildData.result),
+              build_number:
+                recorded.localBuildNumber ?? recorded.jenkinsBuildNumber,
+              jenkins_job_url: jenkinsUrl,
+              last_build_at: builtAtFail,
+            });
             return res.status(400).json({
               success: false,
               message: `Build failed with result: ${buildData.result}`,
@@ -553,6 +541,13 @@ async function handleUnifiedPreviewBuild(req, res) {
               builtAtNoArt,
               "FAILURE",
             );
+            await persistPreviewNodeDeploymentResult(previewNodeId, {
+              build_status: "failed",
+              build_number:
+                recorded.localBuildNumber ?? recorded.jenkinsBuildNumber,
+              jenkins_job_url: jenkinsUrl,
+              last_build_at: builtAtNoArt,
+            });
             return res.status(400).json({
               success: false,
               message: "Artifact file path not found.",
@@ -591,6 +586,13 @@ async function handleUnifiedPreviewBuild(req, res) {
           builtAtDomainErr,
           "FAILURE",
         );
+        await persistPreviewNodeDeploymentResult(previewNodeId, {
+          build_status: "failed",
+          build_number:
+            recordedDom.localBuildNumber ?? recordedDom.jenkinsBuildNumber,
+          jenkins_job_url: jenkinsUrl,
+          last_build_at: builtAtDomainErr,
+        });
         return res.status(400).json({
           success: false,
           message: domainOutput.data.error,
@@ -599,28 +601,6 @@ async function handleUnifiedPreviewBuild(req, res) {
           jenkinsBuildNumber: buildNumber,
           artifactPath: artifactFilePath,
         });
-      }
-
-      try {
-        if (
-          TAG === "frontend" &&
-          typeof previewNodeId === "string" &&
-          previewNodeId.trim() !== ""
-        ) {
-          const forDb = urlConfigsFromEnvJsonArray(envJsonArray);
-          if (forDb.length > 0) {
-            await urlConfigService.createUrlConfigsFromDeployment(
-              forDb,
-              previewNodeId,
-            );
-          }
-        }
-      } catch (urlConfigError) {
-        console.error(
-          "⚠️ Warning: Failed to save URL configs to database:",
-          urlConfigError,
-        );
-        console.error("📋 Error details:", urlConfigError.message);
       }
 
       let recordedOk = {
@@ -637,6 +617,14 @@ async function handleUnifiedPreviewBuild(req, res) {
           builtAtOk,
           "SUCCESS",
         );
+        await persistPreviewNodeDeploymentResult(previewNodeId, {
+          build_status: "success",
+          build_number:
+            recordedOk.localBuildNumber ?? recordedOk.jenkinsBuildNumber,
+          preview_link: domainOutput.data?.url ?? null,
+          jenkins_job_url: jenkinsUrl,
+          last_build_at: builtAtOk,
+        });
       }
 
       res.json({
