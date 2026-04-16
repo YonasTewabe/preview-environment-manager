@@ -24,7 +24,7 @@ import { projectDefaultEnvReady } from "../utils/projectDefaultEnvReady";
 
 const { Content } = Layout;
 
-function buildFrontendNodeUpdatePayload(node, serviceName, branchName) {
+function buildServiceNodeUpdatePayload(node, serviceName, branchName) {
   const br =
     branchName !== undefined && branchName !== null
       ? String(branchName)
@@ -59,37 +59,38 @@ export default function Home({ project }) {
   const { githubBranches, loadingGithubBranches, fetchGithubBranches } =
     useGitHub();
 
-  const { data: frontendNodes, isLoading: isLoadingFrontendNodes } =
+  const { data: webNodesResponse, isLoading: isLoadingWebNodes } =
     usePreviewNodesByProjectId(!isApi ? project?.id : undefined);
-  const { data: backendAxios, isLoading: isLoadingBackendNodes } =
+  const { data: serviceNodesResponse, isLoading: isLoadingServiceNodes } =
     usePreviewServicesByProjectId(isApi ? project?.id : undefined);
 
-  const { mutate: createFrontendNodes, isPending: isCreatingFe } =
+  const { mutate: createWebNode, isPending: isCreatingWebNode } =
     useCreatePreviewNode();
-  const { mutate: updateFrontendNodes, isPending: isUpdatingFe } =
+  const { mutate: updateWebNode, isPending: isUpdatingWebNode } =
     useUpdatePreviewNode();
-  const deletePreviewNodeMutation = useDeletePreviewNode();
+  const deleteWebNode = useDeletePreviewNode();
 
-  const createBackendNode = useCreatePreviewService();
-  const updateBackendNode = useUpdatePreviewService();
-  const deleteBackendNode = useDeletePreviewService();
-  const isSavingBe = createBackendNode.isPending || updateBackendNode.isPending;
+  const createServiceNode = useCreatePreviewService();
+  const updateServiceNode = useUpdatePreviewService();
+  const deleteServiceNode = useDeletePreviewService();
+  const isSavingServiceNode =
+    createServiceNode.isPending || updateServiceNode.isPending;
 
-  const backendRows = useMemo(() => {
-    const raw = backendAxios?.data;
+  const serviceRows = useMemo(() => {
+    const raw = serviceNodesResponse?.data;
     if (!Array.isArray(raw)) return [];
     return raw.map((s) => ({
       ...s,
       branch_name: s.branch_name || s.branches?.[0]?.name || undefined,
     }));
-  }, [backendAxios?.data]);
+  }, [serviceNodesResponse?.data]);
 
   const listForUi = useMemo(() => {
-    if (isApi) return { data: backendRows };
-    return frontendNodes;
-  }, [isApi, backendRows, frontendNodes]);
+    if (isApi) return { data: serviceRows };
+    return webNodesResponse;
+  }, [isApi, serviceRows, webNodesResponse]);
 
-  const listLoading = isApi ? isLoadingBackendNodes : isLoadingFrontendNodes;
+  const listLoading = isApi ? isLoadingServiceNodes : isLoadingWebNodes;
 
   const repoUrl = project?.repository_url
     ? project.repository_url.split("/").slice(4).join("/")
@@ -159,9 +160,9 @@ export default function Home({ project }) {
         }
         try {
           if (isApi) {
-            await deleteBackendNode.mutateAsync(node.id);
+            await deleteServiceNode.mutateAsync(node.id);
           } else {
-            await deletePreviewNodeMutation.mutateAsync(node.id);
+            await deleteWebNode.mutateAsync(node.id);
           }
         } catch (error) {
           const msg =
@@ -174,7 +175,7 @@ export default function Home({ project }) {
         setDeletingNodeId(null);
       }
     },
-    [isApi, deleteBackendNode, deletePreviewNodeMutation],
+    [isApi, deleteServiceNode, deleteWebNode],
   );
 
   const handleModalOk = () => {
@@ -199,7 +200,7 @@ export default function Home({ project }) {
           String(s ?? "")
             .trim()
             .toLowerCase();
-        const dupName = backendRows.find(
+        const dupName = serviceRows.find(
           (s) =>
             lc(s.service_name) === lc(name) &&
             (!selfId || String(s.id) !== String(selfId)),
@@ -210,7 +211,7 @@ export default function Home({ project }) {
           );
           return;
         }
-        const dupBranch = backendRows.find(
+        const dupBranch = serviceRows.find(
           (s) =>
             lc(s.branch_name) === lc(branch) &&
             (!selfId || String(s.id) !== String(selfId)),
@@ -223,13 +224,13 @@ export default function Home({ project }) {
         }
         try {
           if (editingNode) {
-            await updateBackendNode.mutateAsync({
+            await updateServiceNode.mutateAsync({
               id: editingNode.id,
               data: { service_name: name, branch_name: branch },
             });
           } else {
             const defaultProf = project.env_profiles?.find((p) => p.is_default);
-            await createBackendNode.mutateAsync({
+            await createServiceNode.mutateAsync({
               service_name: name,
               branch_name: branch,
               repository_name: repoSlug || name,
@@ -251,8 +252,8 @@ export default function Home({ project }) {
         return;
       }
 
-      const webRows = Array.isArray(frontendNodes?.data)
-        ? frontendNodes.data
+      const webRows = Array.isArray(webNodesResponse?.data)
+        ? webNodesResponse.data
         : [];
       const selfWebId = editingNode?.id;
       const lcw = (s) =>
@@ -281,12 +282,12 @@ export default function Home({ project }) {
       }
 
       if (editingNode) {
-        const payload = buildFrontendNodeUpdatePayload(
+        const payload = buildServiceNodeUpdatePayload(
           editingNode,
           name,
           branch,
         );
-        updateFrontendNodes(
+        updateWebNode(
           {
             id: editingNode.id,
             data: payload,
@@ -306,7 +307,7 @@ export default function Home({ project }) {
           },
         );
       } else {
-        createFrontendNodes(
+        createWebNode(
           {
             type: "api",
             repository_name: project.repository_url,
@@ -375,8 +376,8 @@ export default function Home({ project }) {
           }
         >
           <WebNodesList
-            frontendNodes={listForUi}
-            isLoadingFrontendNodes={listLoading}
+            nodesData={listForUi}
+            isLoadingNodes={listLoading}
             onAddNode={handleAddNode}
             onEditNode={handleEditNode}
             onDeleteNode={handleDeleteNode}
@@ -394,7 +395,11 @@ export default function Home({ project }) {
         editingItem={editingNode}
         githubBranches={githubBranches}
         loadingGithubBranches={loadingGithubBranches}
-        submitLoading={isApi ? isSavingBe : isCreatingFe || isUpdatingFe}
+        submitLoading={
+          isApi
+            ? isSavingServiceNode
+            : isCreatingWebNode || isUpdatingWebNode
+        }
       />
     </div>
   );

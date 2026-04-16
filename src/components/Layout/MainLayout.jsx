@@ -4,6 +4,7 @@ import {
   MoonOutlined,
   SunOutlined,
   UserOutlined,
+  ProfileOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -16,9 +17,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 const { Header, Content } = Layout;
 const { useBreakpoint } = Grid;
 
-/** Header control hovers match active `.sidebar-menu .ant-menu-item-selected` colors */
 const headerCtrlHover =
-  "hover:!bg-[rgba(37,99,235,0.12)] hover:!text-[#1d4ed8] dark:hover:!bg-[rgba(59,130,246,0.18)] dark:hover:!text-[#93c5fd]";
+  "hover:!bg-[color-mix(in_srgb,var(--app-primary)_16%,transparent)]";
 
 const MainLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
@@ -47,6 +47,12 @@ const MainLayout = ({ children }) => {
 
   const userMenuItems = [
     {
+      key: "profile",
+      icon: <ProfileOutlined />,
+      label: "Profile",
+      onClick: () => navigate("/profile"),
+    },
+    {
       key: "logout",
       icon: <LogoutOutlined />,
       label: "Logout",
@@ -56,7 +62,7 @@ const MainLayout = ({ children }) => {
 
   return (
     <Layout
-      className={`min-h-screen ${isDark ? "bg-neutral-950" : "bg-[#f5f5f5]"}`}
+      className="min-h-screen"
       style={{ minHeight: "100vh" }}
     >
       <Sidebar
@@ -67,7 +73,7 @@ const MainLayout = ({ children }) => {
       />
 
       <Layout
-        className={`min-h-screen ${isDark ? "bg-neutral-950" : "bg-[#f5f5f5]"}`}
+        className="min-h-screen"
         style={{
           marginLeft: isMobile ? 0 : collapsed ? 80 : 280,
           minHeight: "100vh",
@@ -76,11 +82,11 @@ const MainLayout = ({ children }) => {
         }}
       >
         <Header
-          className={`!h-14 !min-h-14 !leading-none !px-4 sm:!px-6 flex items-center justify-between gap-4 border-b shadow-[0_1px_0_0_rgba(0,0,0,0.04)] dark:shadow-[0_1px_0_0_rgba(255,255,255,0.06)] z-30 sticky top-0 !py-0 ${
-            isDark
-              ? "!bg-zinc-950/90 backdrop-blur-md border-zinc-800"
-              : "!bg-white/90 backdrop-blur-md border-gray-200/80"
-          }`}
+          className="!h-14 !min-h-14 !leading-none !px-4 sm:!px-6 flex items-center justify-between gap-4 border-b z-30 sticky top-0 !py-0 backdrop-blur-md"
+          style={{
+            background: "color-mix(in srgb, var(--app-surface) 86%, transparent)",
+            borderColor: "var(--app-border)",
+          }}
         >
           <div className="flex min-h-0 min-w-0 flex-1 items-center gap-2 sm:gap-3">
             <Tooltip
@@ -95,7 +101,8 @@ const MainLayout = ({ children }) => {
               <Button
                 type="text"
                 icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                className={`!inline-flex !size-10 shrink-0 !items-center !justify-center rounded-lg text-zinc-700 transition-colors dark:text-zinc-300 ${headerCtrlHover}`}
+                  className={`!inline-flex !size-10 shrink-0 !items-center !justify-center rounded-lg transition-colors ${headerCtrlHover}`}
+                  style={{ color: "var(--app-text)" }}
                 onClick={() =>
                   isMobile ? setMobileNavOpen(true) : setCollapsed((c) => !c)
                 }
@@ -119,7 +126,8 @@ const MainLayout = ({ children }) => {
                 <Button
                   type="text"
                   icon={isDark ? <SunOutlined /> : <MoonOutlined />}
-                  className={`!inline-flex !size-10 !items-center !justify-center rounded-lg text-zinc-700 transition-colors dark:text-zinc-300 ${headerCtrlHover}`}
+                  className={`!inline-flex !size-10 !items-center !justify-center rounded-lg transition-colors ${headerCtrlHover}`}
+                  style={{ color: "var(--app-text)" }}
                   onClick={toggleTheme}
                 />
               </Tooltip>
@@ -130,12 +138,14 @@ const MainLayout = ({ children }) => {
               >
                 <Button
                   type="text"
-                  className={`!inline-flex !h-10 !max-w-[200px] !items-center !justify-start rounded-lg px-2 text-zinc-800 transition-colors dark:text-zinc-100 sm:px-3 ${headerCtrlHover}`}
+                  className={`!inline-flex !h-10 !max-w-[200px] !items-center !justify-start rounded-lg px-2 transition-colors sm:px-3 ${headerCtrlHover}`}
+                  style={{ color: "var(--app-text)" }}
                 >
                   <Avatar
                     size="small"
                     icon={<UserOutlined />}
-                    className="shrink-0 bg-blue-600"
+                    className="shrink-0"
+                    style={{ backgroundColor: "var(--app-primary)" }}
                   />
                   <span className="ml-2 hidden min-w-0 truncate text-sm font-medium sm:inline">
                     {user?.first_name || user?.username || "Account"}
@@ -150,9 +160,9 @@ const MainLayout = ({ children }) => {
         <Content className="flex min-h-0 flex-1 flex-col p-0">
           <div
             ref={mainScrollRef}
-            className={`min-h-0 flex-1 overflow-y-auto p-3 sm:p-6 ${isDark ? "bg-neutral-950" : "bg-[#f5f5f5]"}`}
+            className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-6"
           >
-            <div className="text-zinc-900 dark:text-zinc-50">{children}</div>
+            <div style={{ color: "var(--app-text)" }}>{children}</div>
           </div>
         </Content>
       </Layout>

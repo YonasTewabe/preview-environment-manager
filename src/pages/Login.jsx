@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Form, Input, Button, Alert, Typography, Space, Checkbox } from "antd";
-import { MailOutlined, LockOutlined } from "@ant-design/icons";
+import { Form, Input, Button, Alert, Typography, Checkbox } from "antd";
+import { FaCodeBranch } from "react-icons/fa6";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -43,32 +43,41 @@ const Login = () => {
   const onFinishFailed = () => {};
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-blue-200 px-4 py-8 dark:bg-neutral-950">
+    <div className="flex min-h-screen items-center justify-center px-4 py-8">
       <div className="w-full max-w-md">
         {/* Login Card */}
-        <div className="rounded-2xl border border-zinc-200/80 bg-white p-8 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+        <div
+          className="rounded-2xl border p-8 shadow-xl backdrop-blur-sm"
+          style={{
+            borderColor: "var(--app-border)",
+            background:
+              "color-mix(in srgb, var(--app-surface) 92%, transparent)",
+          }}
+        >
           {/* Logo/Brand */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center mb-4">
-              <div className="w-8 h-8 bg-purple-600 dark:bg-purple-500 rounded-lg mr-3 flex items-center justify-center">
-                <div className="w-4 h-4 bg-white rounded-sm"></div>
+              <div
+                className="mr-3 flex size-11 shrink-0 items-center justify-center rounded-xl"
+                style={{
+                  background:
+                    "color-mix(in srgb, var(--app-primary) 16%, transparent)",
+                  border:
+                    "1px solid color-mix(in srgb, var(--app-primary) 26%, transparent)",
+                }}
+              >
+                <FaCodeBranch
+                  style={{ fontSize: "22px", color: "var(--app-primary)" }}
+                />
               </div>
               <Title
                 level={3}
-                className="!mb-0 !text-black dark:!text-white font-bold"
+                className="!mb-0 font-bold"
+                style={{ color: "var(--app-text)" }}
               >
                 Preview Builder
               </Title>
             </div>
-            <Title
-              level={2}
-              className="!mb-2 !text-black dark:!text-white font-bold"
-            >
-              Welcome back
-            </Title>
-            <Text className="font-bold text-gray-600 dark:text-gray-300">
-              Please enter your details
-            </Text>
           </div>
 
           {error && (
@@ -121,7 +130,7 @@ const Login = () => {
             >
               <Input
                 placeholder="Enter your email or username"
-                className="h-12 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 hover:border-purple-400 focus:border-purple-500"
+                className="h-12 rounded-lg"
                 style={{ fontSize: "16px" }}
               />
             </Form.Item>
@@ -140,7 +149,7 @@ const Login = () => {
             >
               <Input.Password
                 placeholder="••••••••"
-                className="h-12 rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 hover:border-purple-400 focus:border-purple-500"
+                className="h-12 rounded-lg"
                 style={{ fontSize: "16px" }}
               />
             </Form.Item>
@@ -151,14 +160,15 @@ const Login = () => {
                 valuePropName="checked"
                 className="!mb-0"
               >
-                <Checkbox className="text-black dark:text-white">
+                <Checkbox style={{ color: "var(--app-text)" }}>
                   Remember for 30 days
                 </Checkbox>
               </Form.Item>
 
               <Button
                 type="link"
-                className="!p-0 !h-auto text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-medium"
+                className="!h-auto !p-0 font-medium"
+                style={{ color: "var(--app-primary)" }}
                 onClick={() => navigate("/forgot-password")}
               >
                 Forgot password
@@ -170,7 +180,7 @@ const Login = () => {
                 type="primary"
                 htmlType="submit"
                 loading={loading}
-                className="w-full h-12 text-base font-semibold rounded-lg bg-purple-600 hover:bg-purple-700 border-none shadow-md hover:shadow-lg transition-all duration-200"
+                className="h-12 w-full rounded-lg border-none text-base font-semibold shadow-md transition-all duration-200 hover:shadow-lg"
               >
                 {loading ? "Signing in..." : "Sign in"}
               </Button>

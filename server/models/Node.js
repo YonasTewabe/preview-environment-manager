@@ -146,10 +146,6 @@ const Node = sequelize.define(
       type: DataTypes.DATE,
       allowNull: true,
     },
-    url_configs: {
-      type: DataTypes.JSON,
-      allowNull: true,
-    },
   },
   {
     tableName: "nodes",

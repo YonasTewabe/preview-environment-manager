@@ -31,7 +31,10 @@ module.exports = {
         allowNull: false,
         defaultValue: false,
       },
-      email_verification_token: { type: Sequelize.STRING(255), allowNull: true },
+      email_verification_token: {
+        type: Sequelize.STRING(255),
+        allowNull: true,
+      },
       reset_password_token: { type: Sequelize.STRING(255), allowNull: true },
       reset_password_expires: { type: Sequelize.DATE, allowNull: true },
       created_at: { type: Sequelize.DATE, allowNull: false },
@@ -46,7 +49,11 @@ module.exports = {
         defaultValue: Sequelize.UUIDV4,
       },
       name: { type: Sequelize.STRING(255), allowNull: false, unique: true },
-      short_code: { type: Sequelize.STRING(20), allowNull: false, unique: true },
+      short_code: {
+        type: Sequelize.STRING(20),
+        allowNull: false,
+        unique: true,
+      },
       description: { type: Sequelize.TEXT, allowNull: true },
       repository_url: {
         type: Sequelize.STRING(500),
@@ -198,19 +205,13 @@ module.exports = {
       jenkins_job_url: { type: Sequelize.STRING(500), allowNull: true },
       deployment_url: { type: Sequelize.STRING(500), allowNull: true },
       environment: {
-        type: Sequelize.ENUM(
-          "development",
-          "staging",
-          "production",
-          "preview",
-        ),
+        type: Sequelize.ENUM("development", "staging", "production", "preview"),
         allowNull: true,
         defaultValue: "preview",
       },
       last_build_date: { type: Sequelize.DATE, allowNull: true },
       last_build_at: { type: Sequelize.DATE, allowNull: true },
       created_at_build: { type: Sequelize.DATE, allowNull: true },
-      url_configs: { type: Sequelize.JSON, allowNull: true },
       created_at: { type: Sequelize.DATE, allowNull: false },
       updated_at: { type: Sequelize.DATE, allowNull: false },
     });
@@ -381,10 +382,14 @@ module.exports = {
     await queryInterface.addIndex("projects", ["created_by"]);
     await queryInterface.addIndex("projects", ["is_deleted"]);
 
-    await queryInterface.addIndex("project_env_profiles", ["project_id", "slug"], {
-      unique: true,
-      name: "uniq_project_env_profile_slug",
-    });
+    await queryInterface.addIndex(
+      "project_env_profiles",
+      ["project_id", "slug"],
+      {
+        unique: true,
+        name: "uniq_project_env_profile_slug",
+      },
+    );
     await queryInterface.addIndex("project_env_profiles", ["project_id"]);
 
     await queryInterface.addIndex("nodes", ["project_id"]);
@@ -397,10 +402,14 @@ module.exports = {
     await queryInterface.addIndex("environments", ["env_variable"]);
     await queryInterface.addIndex("environments", ["project_id"]);
     await queryInterface.addIndex("environments", ["profile_id"]);
-    await queryInterface.addIndex("environments", ["profile_id", "env_variable"], {
-      unique: true,
-      name: "unique_profile_env_variable",
-    });
+    await queryInterface.addIndex(
+      "environments",
+      ["profile_id", "env_variable"],
+      {
+        unique: true,
+        name: "unique_profile_env_variable",
+      },
+    );
 
     await queryInterface.addIndex("node_env_vars", ["node_id"]);
     await queryInterface.addIndex("node_env_vars", ["project_env_profile_id"]);
@@ -442,4 +451,3 @@ module.exports = {
     await queryInterface.dropTable("users");
   },
 };
-

@@ -4,7 +4,7 @@ import { Modal, Form, Input, Select, Button } from "antd";
 const { Option } = Select;
 
 /**
- * Shared add/edit modal for frontend preview nodes and API-style backend services.
+ * Shared add/edit modal for service nodes.
  * Parent owns the Form instance and submit logic (validate + API).
  */
 export default function ServiceNodeModal({

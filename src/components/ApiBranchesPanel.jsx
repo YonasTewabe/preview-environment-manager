@@ -29,7 +29,7 @@ export default function ApiBranchesPanel({
   loadingGithubBranches: loadingGithubBranchesProp,
   onEditService,
   onDeleteService,
-  backendNodeId,
+  serviceNodeId,
   projectId,
 }) {
   const [isBranchModalVisible, setIsBranchModalVisible] = useState(false);
@@ -70,8 +70,8 @@ export default function ApiBranchesPanel({
     fetchGithubBranches,
   ]);
 
-  const invalidateBackendData = () => {
-    const nodeKey = queryKeyPart(backendNodeId);
+  const invalidateServiceData = () => {
+    const nodeKey = queryKeyPart(serviceNodeId);
     const projectKey = queryKeyPart(projectId);
     return invalidateAndRefetchActive(
       queryClient,
@@ -203,7 +203,7 @@ export default function ApiBranchesPanel({
                 "Branch created but failed to update build status",
               );
             }
-            invalidateBackendData();
+            invalidateServiceData();
           },
           async () => {
             try {
@@ -225,13 +225,13 @@ export default function ApiBranchesPanel({
                 "Branch created but failed to update build status",
               );
             }
-            invalidateBackendData();
+            invalidateServiceData();
           },
         );
 
         setIsBranchModalVisible(false);
         branchForm.resetFields();
-        invalidateBackendData();
+        invalidateServiceData();
       } catch (error) {
         console.error("Error creating branch:", error);
         message.error("Failed to create branch");
@@ -292,7 +292,7 @@ export default function ApiBranchesPanel({
         );
         await deleteBranch.mutateAsync(branchId);
       }
-      invalidateBackendData();
+      invalidateServiceData();
     } catch (error) {
       console.error("Error deleting branch:", error);
       message.error("Failed to delete branch");
@@ -356,7 +356,7 @@ export default function ApiBranchesPanel({
               "Branch rebuild completed but failed to update build status",
             );
           }
-          invalidateBackendData();
+          invalidateServiceData();
         },
         async () => {
           try {
@@ -378,12 +378,12 @@ export default function ApiBranchesPanel({
               "Branch rebuild failed but failed to update build status",
             );
           }
-          invalidateBackendData();
+          invalidateServiceData();
         },
       );
 
       message.success(`Rebuild started for branch "${branchName}"`);
-      invalidateBackendData();
+      invalidateServiceData();
     } catch (error) {
       console.error("Error starting rebuild:", error);
       message.error("Failed to start rebuild");
@@ -424,7 +424,7 @@ export default function ApiBranchesPanel({
   return (
     <>
       <ServiceAccordion
-        backendServices={servicesArray}
+        services={servicesArray}
         onEditService={onEditService}
         onDeleteService={onDeleteService}
         onAddBranch={handleAddBranchClick}

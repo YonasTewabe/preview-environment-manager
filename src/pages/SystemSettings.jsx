@@ -153,7 +153,7 @@ const githubFields = [
 const systemFields = [
   {
     key: "stale_preview_node_days",
-    label: "Stale preview node days",
+    label: "Remove preview node after days",
     placeholder: "5",
     secret: false,
   },

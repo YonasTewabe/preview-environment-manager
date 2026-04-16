@@ -30,7 +30,7 @@ export default function DeployProgressModal({
     if (deployProgress.stage === "completed") {
       return "Success";
     }
-    return "Frontend Deployment Progress";
+    return "Deployment Progress";
   };
 
   const getFooterButtons = () => {

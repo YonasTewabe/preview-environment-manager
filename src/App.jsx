@@ -12,6 +12,7 @@ import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import UserManagement from './pages/UserManagement';
+import Profile from './pages/Profile';
 import MyProjects from './components/Projects/MyProjects';
 import ProjectDetail from './components/Projects/ProjectDetail';
 import ProjectEnvironments from './components/Projects/ProjectEnvironments';
@@ -100,6 +101,16 @@ function App() {
                     </MainLayout>
                   </ProtectedRoute>
                 } 
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <MainLayout>
+                      <Profile />
+                    </MainLayout>
+                  </ProtectedRoute>
+                }
               />
               <Route
                 path="/settings"

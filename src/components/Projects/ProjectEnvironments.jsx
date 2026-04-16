@@ -637,7 +637,8 @@ const ProjectEnvironments = () => {
     <div className="pb-8">
       <div className="mb-4 flex items-center gap-4">
         <Button
-          className="!text-black !font-semibold !text-lg"
+          className="!font-semibold !text-lg"
+          style={{ color: "var(--app-text)" }}
           type="link"
           onClick={() => navigate(environmentsBackPath)}
           icon={<ArrowLeftOutlined />}
@@ -652,7 +653,10 @@ const ProjectEnvironments = () => {
           <div className="flex flex-col gap-1">
             <div className="flex flex-wrap items-center gap-2">
               <EnvironmentOutlined className="text-blue-600" />
-              <span className="text-base font-semibold text-gray-900">
+              <span
+                className="text-base font-semibold"
+                style={{ color: "var(--app-text)" }}
+              >
                 {activeProfileLabel ?? "—"}
               </span>
             </div>

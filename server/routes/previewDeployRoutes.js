@@ -39,15 +39,6 @@ async function resolveExplicitNodeEnvProfileId(node, requested) {
   return row?.id ?? null;
 }
 
-function withUrlConfigsJson(n) {
-  if (!n) return n;
-  const plain = n.get ? n.get({ plain: true }) : { ...n };
-  const raw = plain.url_configs;
-  plain.urlConfigs = Array.isArray(raw) ? raw : [];
-  delete plain.url_configs;
-  return plain;
-}
-
 // GET …/ — all web preview nodes
 router.get("/", async (req, res) => {
   try {
@@ -253,7 +244,7 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ error: "Preview node not found" });
     }
 
-    const plain = withUrlConfigsJson(webNode);
+    const plain = webNode.get ? webNode.get({ plain: true }) : { ...webNode };
     const resolvedProfile = await resolveProfileIdForNode(webNode);
     if (Array.isArray(plain.envOverrides) && resolvedProfile != null) {
       plain.envOverrides = plain.envOverrides.filter(
@@ -703,7 +694,8 @@ router.put("/:id", async (req, res) => {
 
     await webNode.update(updatePayload);
 
-    res.json({ message: "Web preview node updated successfully", data: withUrlConfigsJson(webNode) });
+    const data = webNode.get ? webNode.get({ plain: true }) : { ...webNode };
+    res.json({ message: "Web preview node updated successfully", data });
   } catch (error) {
     console.error("Error updating web preview node:", error);
     res.status(500).json({ error: "Failed to update web preview node" });

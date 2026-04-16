@@ -194,11 +194,13 @@ export const useImportPreviewServices = () => {
 
   return useMutation({
     mutationFn: async ({
+      services,
       backendServices,
       projectId,
       userId,
       conflictResolution = "skip",
     }) => {
+      const items = services ?? backendServices ?? [];
       const response = await fetch(
         `${import.meta.env.VITE_BACKEND_URL}${PREVIEW_SERVICES_PATH}/import/bulk`,
         {
@@ -207,7 +209,7 @@ export const useImportPreviewServices = () => {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            backendServices,
+            backendServices: items,
             projectId,
             userId,
             conflictResolution,

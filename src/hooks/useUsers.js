@@ -170,23 +170,6 @@ export const useSearchUsers = (searchTerm) => {
   });
 };
 
-// Hook to resend welcome email
-export const useResendWelcomeEmail = () => {
-  const { message } = App.useApp();
-  
-  return useMutation({
-    mutationFn: userService.resendWelcomeEmail,
-    onSuccess: (result) => {
-      message.success(result.message || 'Welcome email sent successfully');
-    },
-    onError: (error) => {
-      console.error('Error resending welcome email:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to resend welcome email';
-      message.error(errorMessage);
-    }
-  });
-};
-
 // Hook to test email functionality
 export const useTestEmail = () => {
   const { message } = App.useApp();

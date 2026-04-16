@@ -259,7 +259,8 @@ const ProjectDetail = () => {
     <div className="pb-8">
       <div className="mb-4 flex item-center gap-4">
         <Button
-          className="!text-black !font-semibold !text-base sm:!text-lg"
+          className="!font-semibold !text-base sm:!text-lg"
+          style={{ color: "var(--app-text)" }}
           type="link"
           onClick={() => navigate("/projects")}
           icon={<ArrowLeftOutlined />}
@@ -272,10 +273,16 @@ const ProjectDetail = () => {
         <Card className="md:col-span-12 col-span-1">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <h1 className="truncate text-xl sm:text-2xl font-semibold">
+              <h1
+                className="truncate text-xl sm:text-2xl font-semibold"
+                style={{ color: "var(--app-text)" }}
+              >
                 {name}
               </h1>
-              <h4 className="mt-1 break-words text-sm text-gray-500">
+              <h4
+                className="mt-1 break-words text-sm"
+                style={{ color: "var(--app-text-muted)" }}
+              >
                 {description}
               </h4>
             </div>
@@ -406,6 +413,7 @@ const ProjectDetail = () => {
             <div className="mb-4 flex max-w-2xl flex-col gap-2">
               <Space wrap align="start">
                 <Select
+                  size="large"
                   style={{ minWidth: 220, width: "100%" }}
                   placeholder="Choose default profile"
                   disabled={settingDefaultProfile}
@@ -435,12 +443,13 @@ const ProjectDetail = () => {
               whiteSpace: "pre-wrap",
               wordBreak: "break-word",
               padding: "12px",
-              backgroundColor: "#f5f5f5",
+              backgroundColor:
+                "color-mix(in srgb, var(--app-surface) 86%, var(--app-bg))",
               borderRadius: "4px",
               minHeight: "2.5em",
               maxHeight: "calc(13px * 1.5 * 6 + 24px)",
               overflowY: "auto",
-              border: "1px solid #d9d9d9",
+              border: "1px solid var(--app-border)",
             }}
           >
             {projectEnvironments && projectEnvironments.length > 0 ? (
@@ -448,7 +457,7 @@ const ProjectDetail = () => {
                 .map((env) => `${env.key}=${env.value || ""}`)
                 .join("\n")
             ) : (
-              <span style={{ color: "#999" }}>
+              <span style={{ color: "var(--app-text-muted)" }}>
                 No environments configured. Click &quot;Manage
                 Environments&quot; to add environment variables.
               </span>

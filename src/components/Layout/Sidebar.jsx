@@ -91,38 +91,34 @@ const Sidebar = ({
   const sidebarContent = (
     <>
       <div
-        className={`border-b px-4 py-4 sm:px-5 sm:py-5 ${
-          isDark ? "border-zinc-800" : "border-gray-100"
-        }`}
+        className="px-4 py-4 sm:px-5 sm:py-5"
       >
         <div
           className={`flex items-center ${collapsed && !isMobile ? "justify-center" : "gap-3"}`}
         >
           <div
-            className={`flex size-11 shrink-0 items-center justify-center rounded-xl ${
-              isDark
-                ? "bg-blue-500/15 ring-1 ring-blue-400/25"
-                : "bg-blue-50 ring-1 ring-blue-100"
-            }`}
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl"
+            style={{
+              background:
+                "color-mix(in srgb, var(--app-primary) 16%, transparent)",
+              border: "1px solid color-mix(in srgb, var(--app-primary) 26%, transparent)",
+            }}
           >
             <FaCodeBranch
-              className={isDark ? "text-blue-400" : "text-blue-600"}
-              style={{ fontSize: "22px" }}
+              style={{ fontSize: "22px", color: "var(--app-primary)" }}
             />
           </div>
           {(!collapsed || isMobile) && (
             <div className="min-w-0">
               <Text
-                className={`!mb-0 block text-[0.65rem] font-semibold uppercase leading-tight tracking-[0.12em] ${
-                  isDark ? "text-zinc-500" : "text-zinc-400"
-                }`}
+                className="!mb-0 block text-[0.65rem] font-semibold uppercase leading-tight tracking-[0.12em]"
+                style={{ color: "var(--app-text-muted)" }}
               >
                 Preview
               </Text>
               <Text
-                className={`!mb-0 block truncate text-base font-bold leading-tight tracking-tight ${
-                  isDark ? "text-zinc-100" : "text-zinc-900"
-                }`}
+                className="!mb-0 block truncate text-base font-bold leading-tight tracking-tight"
+                style={{ color: "var(--app-text)" }}
               >
                 Builder
               </Text>
@@ -134,9 +130,8 @@ const Sidebar = ({
       <div className="flex-1 overflow-auto px-2 py-4 sm:px-3">
         {(!collapsed || isMobile) && (
           <p
-            className={`mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider ${
-              isDark ? "text-zinc-500" : "text-zinc-400"
-            }`}
+            className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-wider"
+            style={{ color: "var(--app-text-muted)" }}
           >
             Navigate
           </p>
@@ -160,7 +155,8 @@ const Sidebar = ({
       <div
         className={`border-t pb-4 pt-3 ${
           collapsed && !isMobile ? "flex justify-center px-0" : "px-2 sm:px-3"
-        } ${isDark ? "border-zinc-800" : "border-gray-200/80"}`}
+        }`}
+        style={{ borderColor: "var(--app-border)" }}
       >
         <Button
           type="text"
@@ -173,13 +169,13 @@ const Sidebar = ({
             collapsed && !isMobile
               ? `!inline-flex !size-11 !items-center !justify-center !gap-0 !p-0 rounded-lg font-medium transition-colors ${
                   isDark
-                    ? "text-zinc-300 hover:!bg-zinc-800/80"
-                    : "text-zinc-700 hover:!bg-zinc-100"
+                    ? "text-zinc-300 hover:!bg-zinc-800/70"
+                    : "text-zinc-700 hover:!bg-zinc-100/90"
                 }`
               : `flex h-11 w-full items-center justify-start rounded-lg font-medium transition-colors ${
                   isDark
-                    ? "text-zinc-300 hover:!bg-zinc-800/80"
-                    : "text-zinc-700 hover:!bg-zinc-100"
+                    ? "text-zinc-300 hover:!bg-zinc-800/70"
+                    : "text-zinc-700 hover:!bg-zinc-100/90"
                 }`
           }
         >
@@ -198,12 +194,10 @@ const Sidebar = ({
           collapsed={collapsed}
           collapsedWidth={80}
           width={280}
-          className={`flex flex-col border-r shadow-[1px_0_0_0_rgba(0,0,0,0.04)] dark:shadow-[1px_0_0_0_rgba(255,255,255,0.06)] ${
-            isDark
-              ? "!bg-zinc-950 border-zinc-800"
-              : "!bg-white border-gray-200/80"
-          }`}
+          className="sidebar-shell flex flex-col border-r"
           style={{
+            background: "var(--app-surface)",
+            borderColor: "var(--app-border)",
             overflow: "hidden",
             height: "100vh",
             position: "fixed",
@@ -217,39 +211,43 @@ const Sidebar = ({
           {sidebarContent}
 
           <style>{`
+        .sidebar-shell {
+          box-shadow: var(--app-shadow);
+        }
+
         .sidebar-menu .ant-menu-item {
           height: 44px !important;
           line-height: 44px !important;
           margin: 4px 0 !important;
-          border-radius: 6px !important;
-          color: #374151 !important;
+          border-radius: 10px !important;
+          color: var(--app-text-muted) !important;
           font-weight: 500 !important;
           padding-left: 16px !important;
           transition: all 0.2s ease !important;
         }
 
         .dark .sidebar-menu .ant-menu-item {
-          color: #ffffff !important;
+          color: var(--app-text-muted) !important;
         }
 
         .sidebar-menu .ant-menu-item:hover {
-          background-color: #f3f4f6 !important;
-          color: #000000 !important;
+          background-color: color-mix(in srgb, var(--app-primary) 10%, transparent) !important;
+          color: var(--app-text) !important;
         }
 
         .dark .sidebar-menu .ant-menu-item:hover {
-          background-color: #1a1a1a !important;
-          color: #ffffff !important;
+          background-color: color-mix(in srgb, var(--app-primary) 14%, transparent) !important;
+          color: var(--app-text) !important;
         }
 
         .sidebar-menu .ant-menu-item-selected {
-          background-color: rgba(37, 99, 235, 0.12) !important;
-          color: #1d4ed8 !important;
+          background-color: color-mix(in srgb, var(--app-primary) 18%, transparent) !important;
+          color: var(--app-primary) !important;
           font-weight: 600 !important;
         }
 
         .sidebar-menu .ant-menu-item-selected .anticon {
-          color: #2563eb !important;
+          color: var(--app-primary) !important;
         }
 
         .sidebar-menu .ant-menu-item-selected::after {
@@ -263,49 +261,49 @@ const Sidebar = ({
         .sidebar-menu .ant-menu-submenu-title {
           height: 44px !important;
           line-height: 44px !important;
-          border-radius: 6px !important;
-          color: #374151 !important;
+          border-radius: 10px !important;
+          color: var(--app-text-muted) !important;
           font-weight: 500 !important;
           padding-left: 16px !important;
           transition: all 0.2s ease !important;
         }
 
         .dark .sidebar-menu .ant-menu-submenu-title {
-          color: #ffffff !important;
+          color: var(--app-text-muted) !important;
         }
 
         .sidebar-menu .ant-menu-submenu-title:hover {
-          background-color: #f3f4f6 !important;
-          color: #000000 !important;
+          background-color: color-mix(in srgb, var(--app-primary) 10%, transparent) !important;
+          color: var(--app-text) !important;
         }
 
         .dark .sidebar-menu .ant-menu-submenu-title:hover {
-          background-color: #1a1a1a !important;
-          color: #ffffff !important;
+          background-color: color-mix(in srgb, var(--app-primary) 14%, transparent) !important;
+          color: var(--app-text) !important;
         }
 
         .sidebar-menu .ant-menu-submenu-open > .ant-menu-submenu-title {
-          color: #000000 !important;
+          color: var(--app-text) !important;
         }
 
         .dark .sidebar-menu .ant-menu-submenu-open > .ant-menu-submenu-title {
-          color: #ffffff !important;
+          color: var(--app-text) !important;
         }
 
         .sidebar-menu .ant-menu-submenu-title .anticon {
-          color: #000000 !important;
+          color: var(--app-text-muted) !important;
         }
 
         .dark .sidebar-menu .ant-menu-submenu-title .anticon {
-          color: #ffffff !important;
+          color: var(--app-text-muted) !important;
         }
 
         .sidebar-menu .ant-menu-submenu-title .ant-menu-submenu-arrow {
-          color: #6b7280 !important;
+          color: var(--app-text-muted) !important;
         }
 
         .dark .sidebar-menu .ant-menu-submenu-title .ant-menu-submenu-arrow {
-          color: #9ca3af !important;
+          color: var(--app-text-muted) !important;
         }
 
         .sidebar-menu .ant-menu-inline .ant-menu-item {
@@ -313,31 +311,31 @@ const Sidebar = ({
         }
 
         .sidebar-menu .ant-menu-inline .ant-menu-item:hover {
-          background-color: #f3f4f6 !important;
+          background-color: color-mix(in srgb, var(--app-primary) 10%, transparent) !important;
         }
 
         .dark .sidebar-menu .ant-menu-inline .ant-menu-item:hover {
-          background-color: #374151 !important;
+          background-color: color-mix(in srgb, var(--app-primary) 14%, transparent) !important;
         }
 
         .sidebar-menu .ant-menu-inline .ant-menu-item-selected {
-          background-color: #e6f7ff !important;
-          color: #1890ff !important;
+          background-color: color-mix(in srgb, var(--app-primary) 18%, transparent) !important;
+          color: var(--app-primary) !important;
           font-weight: 600 !important;
         }
 
         .dark .sidebar-menu .ant-menu-inline .ant-menu-item-selected {
-          background-color: rgba(59, 130, 246, 0.18) !important;
-          color: #93c5fd !important;
+          background-color: color-mix(in srgb, var(--app-primary) 20%, transparent) !important;
+          color: var(--app-primary) !important;
         }
 
         .dark .sidebar-menu .ant-menu-item-selected {
-          background-color: rgba(59, 130, 246, 0.18) !important;
-          color: #93c5fd !important;
+          background-color: color-mix(in srgb, var(--app-primary) 20%, transparent) !important;
+          color: var(--app-primary) !important;
         }
 
         .dark .sidebar-menu .ant-menu-item-selected .anticon {
-          color: #60a5fa !important;
+          color: var(--app-primary) !important;
         }
 
         .sidebar-menu .ant-menu-inline .ant-menu-item-selected::after {
@@ -355,9 +353,7 @@ const Sidebar = ({
           bodyStyle={{ padding: 0, display: "flex", flexDirection: "column" }}
           className={isDark ? "dark" : ""}
         >
-          <div
-            className={`flex h-full flex-col ${isDark ? "bg-zinc-950" : "bg-white"}`}
-          >
+          <div className="flex h-full flex-col" style={{ background: "var(--app-surface)" }}>
             {sidebarContent}
           </div>
         </Drawer>

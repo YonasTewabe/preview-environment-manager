@@ -116,8 +116,8 @@ const { Text } = Typography;
 const { Search } = Input;
 
 export default function WebNodesList({
-  frontendNodes,
-  isLoadingFrontendNodes,
+  nodesData,
+  isLoadingNodes,
   onAddNode,
   onEditNode,
   onDeleteNode,
@@ -131,20 +131,20 @@ export default function WebNodesList({
   // Reset to page 1 when data or filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [frontendNodes?.data?.length, searchTerm]);
+  }, [nodesData?.data?.length, searchTerm]);
 
   // Filter nodes based on search and filters
   const filteredNodes = useMemo(() => {
-    if (!frontendNodes?.data) return [];
+    if (!nodesData?.data) return [];
 
-    return frontendNodes.data.filter((node) => {
+    return nodesData.data.filter((node) => {
       // Search filter
       const matchesSearch =
         !searchTerm ||
         node.service_name?.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesSearch;
     });
-  }, [frontendNodes?.data, searchTerm]);
+  }, [nodesData?.data, searchTerm]);
 
   // Calculate paginated data from filtered nodes
   const paginatedNodes = useMemo(() => {
@@ -191,7 +191,7 @@ export default function WebNodesList({
         />
       </div>
 
-      {isLoadingFrontendNodes ? (
+      {isLoadingNodes ? (
         <div
           style={{
             display: "flex",
@@ -212,7 +212,7 @@ export default function WebNodesList({
         >
           <Empty
             description={
-              frontendNodes?.data?.length === 0
+                  nodesData?.data?.length === 0
                 ? 'No nodes yet. Use "Add Node" to create one.'
                 : "No nodes match your search."
             }
@@ -242,7 +242,7 @@ export default function WebNodesList({
                       <Spin tip="Deleting…" />
                     </div>
                   ) : null}
-                  {/* Name + branch (match FrontendConfig service detail fields) */}
+                  {/* Name + branch fields */}
                   <div
                     style={{
                       display: "flex",

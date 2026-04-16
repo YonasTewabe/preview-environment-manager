@@ -31,13 +31,13 @@ export default function ApiNodesTab({
   const projectId = projectProp?.id ?? idFromRoute;
   const project = projectProp;
 
-  const { data: backendServices = [], isLoading: loadingServices } =
+  const { data: serviceNodes = [], isLoading: loadingServices } =
     usePreviewServicesByProjectId(projectId);
-  const createBackendNode = useCreatePreviewService();
-  const updateBackendNode = useUpdatePreviewService();
-  const isSavingBackendNode =
-    createBackendNode.isPending || updateBackendNode.isPending;
-  const deleteBackendNode = useDeletePreviewService();
+  const createServiceNode = useCreatePreviewService();
+  const updateServiceNode = useUpdatePreviewService();
+  const isSavingServiceNode =
+    createServiceNode.isPending || updateServiceNode.isPending;
+  const deleteServiceNode = useDeletePreviewService();
 
   const githubHook = useGitHub();
   const githubBranches =
@@ -46,8 +46,8 @@ export default function ApiNodesTab({
     loadingGithubBranchesProp ?? githubHook.loadingGithubBranches;
 
   const detailServiceId = String(detailServiceIdProp ?? "").trim() || null;
-  const servicesArray = Array.isArray(backendServices?.data)
-    ? backendServices.data
+  const servicesArray = Array.isArray(serviceNodes?.data)
+    ? serviceNodes.data
     : [];
   const displayServices =
     detailServiceId != null
@@ -128,12 +128,12 @@ export default function ApiNodesTab({
 
       try {
         if (editingService) {
-          await updateBackendNode.mutateAsync({
+          await updateServiceNode.mutateAsync({
             id: editingService.id,
             data: { service_name: name, branch_name: branch },
           });
         } else {
-          await createBackendNode.mutateAsync({
+          await createServiceNode.mutateAsync({
             service_name: name,
             branch_name: branch,
             repository_name: repoSlug || name,
@@ -151,16 +151,16 @@ export default function ApiNodesTab({
         setIsModalVisible(false);
         form.resetFields();
       } catch (error) {
-        console.error("Error saving backend service:", error);
+        console.error("Error saving service:", error);
       }
     });
   };
 
   const handleDeleteService = async (serviceId) => {
     try {
-      await deleteBackendNode.mutateAsync(serviceId);
+      await deleteServiceNode.mutateAsync(serviceId);
     } catch (error) {
-      console.error("Error deleting backend service:", error);
+      console.error("Error deleting service:", error);
     }
   };
 
@@ -238,7 +238,7 @@ export default function ApiNodesTab({
           loadingGithubBranches={loadingGithubBranches}
           onEditService={handleEditServiceClick}
           onDeleteService={handleDeleteService}
-          backendNodeId={displayServices[0]?.id}
+          serviceNodeId={displayServices[0]?.id}
           projectId={project?.id ?? projectId}
         />
       )}
@@ -251,7 +251,7 @@ export default function ApiNodesTab({
         editingItem={editingService}
         githubBranches={githubBranches}
         loadingGithubBranches={loadingGithubBranches}
-        submitLoading={isSavingBackendNode}
+        submitLoading={isSavingServiceNode}
       />
     </div>
   );

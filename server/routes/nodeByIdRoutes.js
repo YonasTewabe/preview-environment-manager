@@ -10,15 +10,6 @@ import { resolveProfileIdForNode } from "../utils/resolveProjectEnvProfile.js";
 
 const router = express.Router();
 
-function withUrlConfigsJson(n) {
-  if (!n) return n;
-  const plain = n.get ? n.get({ plain: true }) : { ...n };
-  const raw = plain.url_configs;
-  plain.urlConfigs = Array.isArray(raw) ? raw : [];
-  delete plain.url_configs;
-  return plain;
-}
-
 function mapApiBranch(row) {
   if (!row) return row;
   const p = row.get ? row.get({ plain: true }) : { ...row };
@@ -113,7 +104,9 @@ router.get("/:id", async (req, res) => {
       if (!previewNode) {
         return res.status(404).json({ error: "Node not found" });
       }
-      const plain = withUrlConfigsJson(previewNode);
+      const plain = previewNode.get
+        ? previewNode.get({ plain: true })
+        : { ...previewNode };
       const resolvedProfile = await resolveProfileIdForNode(previewNode);
       if (Array.isArray(plain.envOverrides) && resolvedProfile != null) {
         plain.envOverrides = plain.envOverrides.filter(

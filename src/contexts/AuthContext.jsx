@@ -1,13 +1,13 @@
-import { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
-import { message } from 'antd';
+import { createContext, useContext, useState, useEffect } from "react";
+import axios from "axios";
+import { message } from "antd";
 
 const AuthContext = createContext();
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -15,29 +15,29 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(localStorage.getItem("token"));
 
   // Set up axios defaults
   useEffect(() => {
     if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
     } else {
-      delete axios.defaults.headers.common['Authorization'];
+      delete axios.defaults.headers.common["Authorization"];
     }
   }, [token]);
 
   // Check if user is already logged in on app start
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    const storedToken = localStorage.getItem('token');
-    
+    const storedUser = localStorage.getItem("user");
+    const storedToken = localStorage.getItem("token");
+
     if (storedUser && storedToken) {
       try {
         const parsedUser = JSON.parse(storedUser);
         setUser(parsedUser);
         setToken(storedToken);
       } catch (error) {
-        console.error('Error parsing stored user data:', error);
+        console.error("Error parsing stored user data:", error);
         logout();
       }
     }
@@ -47,28 +47,32 @@ export const AuthProvider = ({ children }) => {
   const login = async (username, password) => {
     try {
       // Convert email to username if it's an email format
-      const loginUsername = username.includes('@') ? username.split('@')[0] : username;
-      
-      const response = await axios.post(`${import.meta.env.VITE_BACKEND_URL}auth/login`, {
-        username: loginUsername,
-        password,
-      });
+      const loginUsername = username.includes("@")
+        ? username.split("@")[0]
+        : username;
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}auth/login`,
+        {
+          username: loginUsername,
+          password,
+        },
+      );
 
       const { user: userData, token: userToken } = response.data;
-      
+
       // Store in state
       setUser(userData);
       setToken(userToken);
-      
+
       // Store in localStorage
-      localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('token', userToken);
-      
-      message.success('Welcome back!');
+      localStorage.setItem("user", JSON.stringify(userData));
+      localStorage.setItem("token", userToken);
+
+      message.success("Welcome back!");
       return { success: true, user: userData };
-      
     } catch (error) {
-      const errorMessage = error.response?.data?.error || 'Login failed';
+      const errorMessage = error.response?.data?.error || "Login failed";
       message.error(errorMessage);
       return { success: false, error: errorMessage };
     }
@@ -77,10 +81,9 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
-    message.info('You have been logged out');
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    delete axios.defaults.headers.common["Authorization"];
   };
 
   const isAuthenticated = () => {
@@ -92,11 +95,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAdmin = () => {
-    return hasRole('admin');
+    return hasRole("admin");
   };
 
   const isDeveloper = () => {
-    return hasRole('developer') || hasRole('admin');
+    return hasRole("developer") || hasRole("admin");
+  };
+
+  const updateStoredUser = (nextUser) => {
+    setUser(nextUser);
+    localStorage.setItem("user", JSON.stringify(nextUser));
   };
 
   const value = {
@@ -109,11 +117,8 @@ export const AuthProvider = ({ children }) => {
     hasRole,
     isAdmin,
     isDeveloper,
+    updateStoredUser,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -1,33 +1,17 @@
 import { useState, useMemo, useEffect } from "react";
-import {
-  Table,
-  Input,
-  Button,
-  Space,
-  Tag,
-  Popconfirm,
-  Card,
-  Row,
-  Col,
-} from "antd";
+import { Table, Input, Button, Space, Tag, Popconfirm, Card } from "antd";
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   UserOutlined,
-  ReloadOutlined,
-  MailOutlined,
-  TeamOutlined,
-  CheckCircleOutlined,
 } from "@ant-design/icons";
-import StatsCard from "../components/Dashboard/StatsCard";
 import UserFormModal from "../components/UserFormModal";
 import {
   useUsers,
   useCreateUser,
   useUpdateUser,
   useDeleteUser,
-  useResendWelcomeEmail,
 } from "../hooks/useUsers";
 
 const { Search } = Input;
@@ -61,7 +45,6 @@ const UserManagement = () => {
   const createUserMutation = useCreateUser();
   const updateUserMutation = useUpdateUser();
   const deleteUserMutation = useDeleteUser();
-  const resendEmailMutation = useResendWelcomeEmail();
 
   const allUsers = Array.isArray(usersData) ? usersData : [];
   const filteredUsers = useMemo(() => {
@@ -119,11 +102,6 @@ const UserManagement = () => {
   // Handle delete user
   const handleDeleteUser = (userId) => {
     deleteUserMutation.mutate(userId);
-  };
-
-  // Handle resend welcome email
-  const handleResendEmail = (userId) => {
-    resendEmailMutation.mutate(userId);
   };
 
   // Handle form submission (create/update) — role is not managed in UI; keep existing on edit
@@ -224,15 +202,6 @@ const UserManagement = () => {
             size="small"
             title="Edit user"
           />
-          <Button
-            type="link"
-            icon={<MailOutlined />}
-            onClick={() => handleResendEmail(record.id)}
-            className="text-green-600 dark:text-green-400 hover:text-green-800 dark:hover:text-green-300"
-            size="small"
-            loading={resendEmailMutation.isPending}
-            title="Resend welcome email"
-          />
           <Popconfirm
             title="Delete User"
             description="Are you sure you want to delete this user?"
@@ -244,7 +213,8 @@ const UserManagement = () => {
             <Button
               type="link"
               icon={<DeleteOutlined />}
-              className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300"
+              danger
+              className="!text-red-600 dark:!text-red-400 hover:!text-red-800 dark:hover:!text-red-300"
               size="small"
               title="Delete user"
             />

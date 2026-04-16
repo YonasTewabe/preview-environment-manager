@@ -25,7 +25,7 @@ const { Text } = Typography;
 const { Panel } = Collapse;
 
 export default function ServiceAccordion({
-  backendServices,
+  services,
   onEditService,
   onDeleteService,
   onAddBranch,
@@ -71,7 +71,7 @@ export default function ServiceAccordion({
       danger: true,
       onClick: () => {
         Modal.confirm({
-          title: "Delete this backend service?",
+          title: "Delete this service?",
           content: "Are you sure you want to delete this service?",
           okText: "Yes",
           okType: "danger",
@@ -97,7 +97,7 @@ export default function ServiceAccordion({
         />
       )}
     >
-      {backendServices?.map((service) => {
+      {services?.map((service) => {
         // Get the first branch name or default
         const branchName =
           service.branches && service.branches.length > 0

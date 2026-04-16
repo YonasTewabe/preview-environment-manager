@@ -5,18 +5,12 @@ import {
   Input,
   Button,
   Space,
-  Divider,
   Row,
   Col,
   Select,
   message,
 } from "antd";
-import {
-  ProjectOutlined,
-  BranchesOutlined,
-  SaveOutlined,
-  CloseOutlined,
-} from "@ant-design/icons";
+import { BranchesOutlined, CloseOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 const { TextArea } = Input;
@@ -50,10 +44,7 @@ function duplicateFieldFeedback(data) {
       (low.includes("another project") && low.includes("environment"))
     )
       field = "env_name";
-    else if (
-      low.includes("name already") ||
-      low.includes("with this name")
-    )
+    else if (low.includes("name already") || low.includes("with this name"))
       field = "name";
   }
   if (!field || !DUPLICATE_FIELD_NAMES.has(field)) return null;
@@ -185,7 +176,6 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
             <Form.Item
               name="short_code"
               label="Short code"
-              extra="Used in preview domains (e.g. acme-1234-fe). Letters, numbers, -, _."
               rules={[
                 { required: true, message: "Please enter a short code" },
                 {
@@ -195,8 +185,7 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
                 },
                 {
                   pattern: /^[a-z0-9-]+$/i,
-                  message:
-                    "Use only letters, numbers, and hyphen (no spaces)",
+                  message: "Use only letters, numbers, and hyphen (no spaces)",
                 },
               ]}
             >
@@ -236,11 +225,12 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
               rules={[
                 {
                   required: true,
-                  message: "Please select Frontend or Backend",
+                  message: "Please select a tag",
                 },
               ]}
             >
               <Select
+                size="large"
                 placeholder="Select tag"
                 options={[
                   { value: "frontend", label: "Frontend" },
@@ -285,9 +275,6 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
             </Form.Item>
           </Col>
         </Row>
-
-        <Divider />
-
         <Form.Item className="mb-0">
           <Space className="w-full justify-end">
             <Button onClick={onCancel} icon={<CloseOutlined />}>

@@ -13,9 +13,10 @@ const StatsCard = ({
   loading = false,
 }) => {
   const colorMap = {
-    blue: "text-blue-600 dark:text-blue-400 bg-blue-50 border-blue-200",
-    green: "text-green-600 bg-green-50 border-green-200",
-    red: "text-red-600 dark:text-red-400 bg-red-50 border-red-200",
+    blue:
+      "text-blue-600 dark:text-blue-400 bg-[color-mix(in_srgb,var(--app-primary)_14%,transparent)] border-[color-mix(in_srgb,var(--app-primary)_26%,transparent)]",
+    green: "text-green-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-500/15 dark:border-emerald-500/30",
+    red: "text-red-600 dark:text-red-400 bg-rose-50 border-rose-200 dark:bg-rose-500/15 dark:border-rose-500/30",
     orange:
       "text-orange-600 dark:text-orange-400 bg-orange-50 border-orange-200",
     purple:
@@ -36,14 +37,19 @@ const StatsCard = ({
 
   return (
     <Card
-      className="border border-zinc-200/80 bg-white shadow-sm transition-shadow duration-200 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+      className="border shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
       loading={loading}
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
           <Statistic
             title={
-              <span className="text-black  text-sm font-medium">{title}</span>
+              <span
+                className="text-sm font-medium"
+                style={{ color: "var(--app-text)" }}
+              >
+                {title}
+              </span>
             }
             value={value}
             prefix={prefix}
@@ -54,7 +60,7 @@ const StatsCard = ({
                   ? "#10b981"
                   : color === "red"
                     ? "#ef4444"
-                    : "#1f2937",
+                    : "var(--app-text)",
               fontSize: "28px",
               fontWeight: "600",
               lineHeight: "1.2",
@@ -69,12 +75,12 @@ const StatsCard = ({
             <span
               className={`text-xl ${
                 color === "green"
-                  ? "text-green-600"
+                  ? "text-green-600 dark:text-green-400"
                   : color === "red"
-                    ? "text-red-600"
+                    ? "text-red-600 dark:text-red-400"
                     : color === "orange"
-                      ? "text-orange-600"
-                      : "text-blue-600"
+                      ? "text-orange-600 dark:text-orange-400"
+                      : "text-blue-600 dark:text-blue-400"
               }`}
             >
               {icon}
@@ -84,13 +90,13 @@ const StatsCard = ({
       </div>
 
       {trend && (
-        <div className="flex items-center mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+        <div className="mt-4 flex items-center border-t pt-4" style={{ borderColor: "var(--app-border)" }}>
           <div className="flex items-center space-x-1">
             {getTrendIcon()}
             <span className={`text-sm font-medium ${getTrendColor()}`}>
               {trendValue}
             </span>
-            <span className="text-gray-600 dark:text-gray-400 text-sm">
+            <span className="text-sm" style={{ color: "var(--app-text-muted)" }}>
               vs last month
             </span>
           </div>
