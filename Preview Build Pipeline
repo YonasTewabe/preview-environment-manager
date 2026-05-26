@@ -1,0 +1,433 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'TAG')
+        string(name: 'REPO_URL')
+        string(name: 'BRANCH_NAME')
+        string(name: 'PORT')
+        string(name: 'DOMAIN_NAME')
+        string(name: 'ENV_JSON')
+    }
+
+    environment {
+        REMOTE_IP = 'your_ip_address'
+        REMOTE_USER = 'ubuntu'
+        SSH_PASSWORD_CREDENTIAL_ID = 'your-password'
+        FULL_DOMAIN = "${params.DOMAIN_NAME}-preview.yourdomain"
+        BASE_DOMAIN = 'yourdomain'
+        GODADDY_KEY = 'key'
+        GODADDY_SECRET = 'secret'
+        GODADDY_API = 'https://api.godaddy.com/v1/domains'
+    }
+
+    stages {
+
+        stage('Check If Folder Exists') {
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'REMOTE_PASS')]) {
+                    script {
+                        env.FOLDER_EXISTS = sh(
+                            script: """
+                                sshpass -p '${REMOTE_PASS}' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} "[ -d "~/${params.DOMAIN_NAME}" ] && echo exists || echo missing"
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        echo "Folder check result: ${env.FOLDER_EXISTS}"
+                    }
+                }
+            }
+        }
+
+        stage('Check Port Availability') {
+            when { expression { env.FOLDER_EXISTS == 'missing' } }
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'REMOTE_PASS')]) {
+                    script {
+                        echo "Checking port ${params.PORT} on ${env.REMOTE_IP}"
+
+                        def portCheck = sh(
+                            script: """
+                                sshpass -p '${REMOTE_PASS}' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} \
+                                'netstat -tuln | grep :${params.PORT}'
+                            """,
+                            returnStatus: true
+                        )
+
+                        if (portCheck == 0) {
+                            error "❌ Port ${params.PORT} is already in use. Aborting build."
+                        } else {
+                            echo "✅ Port ${params.PORT} is available."
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Clone or Pull Repo') {
+            steps {
+                withCredentials([
+                    usernamePassword(credentialsId: 'toAccessGithub', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_PASS'),
+                    string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')
+                ]) {
+                    script {
+                        def repoUrl = params.REPO_URL.replace('https://', "https://${GIT_USER}:${GIT_PASS}@")
+                        sh """
+                            sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} '
+                                if [ ! -d "${params.DOMAIN_NAME}/.git" ]; then
+                                    git clone ${repoUrl} -b ${params.BRANCH_NAME} ${params.DOMAIN_NAME}
+                                else
+                                    cd ${params.DOMAIN_NAME} && \
+                                    git fetch origin && \
+                                    git reset --hard origin/${params.BRANCH_NAME} && \
+                                    git clean -fd
+                                fi
+                            '
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Set .env File') {
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')]) {
+                    script {
+                        def portKey = (params.TAG == 'backend') ? 'APP_PORT' : 'PORT'
+
+                        sh """
+                            sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} '
+                                ENV_FILE=~/${params.DOMAIN_NAME}/.env
+                                touch "\$ENV_FILE"
+                                sed -i "/^APP_PORT=/d" "\$ENV_FILE"
+                                sed -i "/^PORT=/d" "\$ENV_FILE"
+                                echo "${portKey}=${params.PORT}" >> "\$ENV_FILE"
+                            '
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Inject URL Configs to .env') {
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')]) {
+                    script {
+                        def parsed = new groovy.json.JsonSlurperClassic().parseText(params.ENV_JSON)
+
+                        def keyValuePairs = []
+                        def keys = []
+
+                        if (parsed instanceof Map) {
+                            parsed.each { k, v ->
+                                if (k && v != null) {
+                                    keys << k.toString()
+                                    keyValuePairs << "${k}=${v}"
+                                }
+                            }
+                        } else if (parsed instanceof List) {
+                            parsed.each { entry ->
+                                if (entry.key && entry.value != null) {
+                                    keys << entry.key.toString()
+                                    keyValuePairs << "${entry.key}=${entry.value}"
+                                }
+                            }
+                        } else {
+                            error "❌ Unsupported JSON format. Use object or array of {key,value}."
+                        }
+
+                        if (keyValuePairs.isEmpty()) {
+                            error "❌ No valid key/value pairs found in ENV_JSON."
+                        }
+
+                        def keyPattern = keys.collect { k -> "\"^${k}=.*\$\"" }.join(" ")
+                        def envContent = keyValuePairs.join("\n")
+
+                        sh """
+                            sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} '
+                                ENV_FILE=~/${params.DOMAIN_NAME}/.env
+                                touch "\$ENV_FILE"
+
+                                for pattern in ${keyPattern}; do
+                                    sed -i "/\$pattern/d" "\$ENV_FILE"
+                                done
+
+                                echo "${envContent}" >> "\$ENV_FILE"
+                            '
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')]) {
+                    sh """
+                        sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} '
+                            cd ~/${params.DOMAIN_NAME} &&
+                            npm install
+                        '
+                    """
+                }
+            }
+        }
+
+        stage('Run Migrations') {
+            when { expression { params.TAG == 'backend' } }
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')]) {
+                    script {
+                        def output = sh(
+                            script: """
+                                sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} '
+                                    cd ${params.DOMAIN_NAME}/src/app/migrations &&
+                                    rm -f * &&
+                                    cd &&
+                                    cd ${params.DOMAIN_NAME} && npm run migration:generate-run || true
+                                '
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        echo "Migration Output: ${output}"
+
+                        if (!output.contains('No changes in database schema were found')) {
+                            sh """
+                                sshpass -p "$SERVER_PASSWORD" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} '
+                                    cd ${params.DOMAIN_NAME} && npm run migration:run
+                                '
+                            """
+                        } else {
+                            echo "ℹ️ No DB schema changes found. Skipping migration."
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build Backend') {
+            when { expression { params.TAG == 'backend' } }
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')]) {
+                    sh """
+                        sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} '
+                            cd ${params.DOMAIN_NAME} &&
+                            npm run lint -- --fix &&
+                            npm run build
+                        '
+                    """
+                }
+            }
+        }
+
+        stage('Run Nest.js App') {
+            when { expression { params.TAG == 'backend' } }
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')]) {
+                    sh """
+                        sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} '
+                            cd ${params.DOMAIN_NAME} &&
+                            sudo pm2 delete ${params.DOMAIN_NAME} || true &&
+                            sudo NODE_PORT=${params.PORT} pm2 start dist/main.js --name "${params.DOMAIN_NAME}"
+                            sudo pm2 save
+                        '
+                    """
+                }
+            }
+        }
+
+        stage('Update PM2 Config') {
+            when { expression { params.TAG == 'frontend' } }
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')]) {
+                    script {
+                        def ecosystemConfig = """
+                            module.exports = {
+                              apps: [
+                                {
+                                  name: '${params.DOMAIN_NAME}',
+                                  script: 'node_modules/next/dist/bin/next',
+                                  args: 'start -p ${params.PORT}',
+                                  env: {
+                                    NODE_ENV: 'production',
+                                    PORT: ${params.PORT},
+                                  },
+                                },
+                              ],
+                            };
+                        """.stripIndent().trim()
+
+                        writeFile file: "ecosystem.config.cjs", text: ecosystemConfig
+
+                        sh """
+                            sshpass -p '$SERVER_PASSWORD' scp -o StrictHostKeyChecking=no ecosystem.config.cjs ${REMOTE_USER}@${REMOTE_IP}:~/${params.DOMAIN_NAME}/
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Build frontend') {
+            when { expression { params.TAG == 'frontend' } }
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')]) {
+                    sh """
+                        sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} "
+                            cd ~/${params.DOMAIN_NAME} &&
+                            sudo DISABLE_PWA=true npm run build -- --no-lint 2>/dev/null || sudo DISABLE_PWA=true npm run build
+                        "
+                    """
+                }
+            }
+        }
+
+        stage('Start Next.js App with PM2') {
+            when { expression { params.TAG == 'frontend' } }
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')]) {
+                    sh """
+                        sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} "
+                            cd ~/${params.DOMAIN_NAME} &&
+                            sudo pm2 delete ${params.DOMAIN_NAME} || true &&
+                            sudo pm2 start ecosystem.config.cjs &&
+                            sudo pm2 save
+                        "
+                    """
+                }
+            }
+        }
+
+        stage('Check Nginx Conf Exists') {
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'REMOTE_PASS')]) {
+                    script {
+                        env.NGINX_CONF_EXISTS = sh(
+                            script: """
+                                sshpass -p "$REMOTE_PASS" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} '
+                                    [ -f /etc/nginx/conf.d/${params.DOMAIN_NAME}.conf ] && echo exists || echo missing
+                                '
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        echo "Nginx conf check result: ${env.NGINX_CONF_EXISTS}"
+                    }
+                }
+            }
+        }
+        
+         stage('Add DNS Records') {
+            when { expression { env.NGINX_CONF_EXISTS == 'missing' } }
+            steps {
+                script {
+                    def subdomain = "${params.DOMAIN_NAME}-preview".toLowerCase().trim()
+                    def url = "${env.GODADDY_API}/${env.BASE_DOMAIN}/records/A/${subdomain}"
+        
+                    def payload = groovy.json.JsonOutput.toJson([
+                        [
+                            data: env.REMOTE_IP,
+                            name: subdomain,
+                            ttl : 600,
+                            type: "A"
+                        ]
+                    ])
+                    try {
+                        def response = httpRequest(
+                            httpMode            : 'PUT',
+                            url                 : url,
+                            customHeaders       : [
+                                [name: 'Authorization', value: "sso-key ${env.GODADDY_KEY}:${env.GODADDY_SECRET}"],
+                                [name: 'Content-Type',  value: 'application/json']
+                            ],
+                            requestBody         : payload,
+                            validResponseCodes  : '100:599',
+                            consoleLogResponseBody: true
+                        )
+                        echo "✅ ${subdomain}.${env.BASE_DOMAIN} updated: HTTP ${response.status}"
+                    } catch (err) {
+                        echo "❌ Failed to update ${subdomain}: ${err.getMessage()}"
+                    }
+                }
+            }
+        }
+        
+        stage('Wait for DNS Propagation'){
+            when { expression { env.NGINX_CONF_EXISTS == 'missing' } }
+            steps {
+                sleep 60
+            }
+        }
+
+        stage('Create Nginx Config on Remote Server') {
+            when { expression { env.NGINX_CONF_EXISTS == 'missing' } }
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'REMOTE_PASS')]) {
+                    script {
+                        def confContent = """
+                            server {
+                                listen 80;
+                                server_name ${env.FULL_DOMAIN};
+
+                                location / {
+                                    proxy_pass http://localhost:${params.PORT};
+                                    proxy_http_version 1.1;
+                                    proxy_set_header Upgrade \$http_upgrade;
+                                    proxy_set_header Connection 'upgrade';
+                                    proxy_set_header Host \$host;
+                                    proxy_cache_bypass \$http_upgrade;
+                                }
+                            }
+                        """.stripIndent().trim()
+
+                        writeFile file: "${params.DOMAIN_NAME}.conf", text: confContent
+
+                        sh """
+                            sshpass -p "$REMOTE_PASS" scp -o StrictHostKeyChecking=no ${params.DOMAIN_NAME}.conf ${REMOTE_USER}@${REMOTE_IP}:/tmp/
+                            sshpass -p "$REMOTE_PASS" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} \
+                            'sudo mv /tmp/${params.DOMAIN_NAME}.conf /etc/nginx/conf.d/'
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Certbot SSL') {
+            when { expression { env.NGINX_CONF_EXISTS == 'missing' } }
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'REMOTE_PASS')]) {
+                    sh """
+                        sshpass -p "$REMOTE_PASS" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} \
+                        'sudo certbot --nginx -d ${params.DOMAIN_NAME}-preview.ienetworks.co --force-renewal'
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                def successJson = """
+                    {
+                        "name": "${params.DOMAIN_NAME}",
+                        "url": "https://${env.FULL_DOMAIN}",
+                        "port": "${params.PORT}"
+                    }
+                """.trim()
+
+                writeFile file: 'success_response.json', text: successJson
+                archiveArtifacts artifacts: 'success_response.json', allowEmptyArchive: true
+
+                echo "✅ Deployed to ${env.FULL_DOMAIN}"
+            }
+        }
+
+        failure {
+            writeFile file: 'error_response.json', text: '{"error": "Deployment failed."}'
+            archiveArtifacts artifacts: 'error_response.json', allowEmptyArchive: true
+            echo "❌ Deployment failed."
+        }
+    }
+}
