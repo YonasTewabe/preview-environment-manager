@@ -1,0 +1,114 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'DOMAIN_NAME')
+    }
+
+    environment {
+        REMOTE_IP = 'your_ip_address'
+        REMOTE_USER = 'ubuntu'
+        SSH_PASSWORD_CREDENTIAL_ID = 'your-password'
+        FULL_DOMAIN = "${params.DOMAIN_NAME}-preview"
+        BASE_DOMAIN = 'yourdomain'
+        GODADDY_KEY = 'key'
+        GODADDY_SECRET = 'secret'
+        GODADDY_API = 'https://api.godaddy.com/v1/domains'
+    }
+
+    stages {
+
+        stage('Delete Certbot Certificate') {
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')]) {
+                    sh """
+                        sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} '
+                        sudo certbot delete --cert-name ${env.FULL_DOMAIN}.${env.BASE_DOMAIN} --non-interactive || echo "Certificate not found"
+                        '
+                    """
+                }
+            }
+        }
+
+        stage('Delete DNS Records') {
+            steps {
+                script {
+                    def subdomain = "${params.DOMAIN_NAME}-preview".toLowerCase().trim()
+                    def url = "${env.GODADDY_API}/${env.BASE_DOMAIN}/records/A/${subdomain}"
+
+                    try {
+                        def response = httpRequest(
+                            httpMode            : 'DELETE',
+                            url                 : url,
+                            customHeaders       : [
+                                [name: 'Authorization', value: "sso-key ${env.GODADDY_KEY}:${env.GODADDY_SECRET}"],
+                                [name: 'Content-Type',  value: 'application/json']
+                            ],
+                            validResponseCodes  : '100:599',
+                            consoleLogResponseBody: true
+                        )
+                        echo "✅ Deleted ${subdomain}.${env.BASE_DOMAIN}: HTTP ${response.status}"
+                    } catch (err) {
+                        echo "❌ Failed to delete ${subdomain}: ${err.getMessage()}"
+                    }
+                }
+            }
+        }
+
+        stage('Delete Nginx Config & Reload Nginx') {
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')]) {
+                    sh """
+                        sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} '
+                        sudo rm -f /etc/nginx/conf.d/${params.DOMAIN_NAME}.conf &&
+                        sudo systemctl reload nginx
+                        '
+                    """
+                }
+            }
+        }
+
+        stage('Stop PM2 Process') {
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')]) {
+                    sh """
+                        sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} '
+                        sudo pm2 delete ${params.DOMAIN_NAME} || echo "PM2 process not found"
+                        sudo pm2 save
+                        '
+                    """
+                }
+            }
+        }
+
+        stage('Delete App Directory') {
+            steps {
+                withCredentials([string(credentialsId: SSH_PASSWORD_CREDENTIAL_ID, variable: 'SERVER_PASSWORD')]) {
+                    sh """
+                        sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_IP} '
+                        sudo rm -rf ~/${params.DOMAIN_NAME}
+                        '
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            script {
+                writeFile file: 'success_response.json', text: '{"success": "Successfully deleted."}'
+                archiveArtifacts artifacts: 'success_response.json', allowEmptyArchive: true
+                echo "✅ Success."
+            }
+        }
+
+        failure {
+            script {
+                writeFile file: 'error_response.json', text: '{"error": "Failed to get a successful response."}'
+                archiveArtifacts artifacts: 'error_response.json', allowEmptyArchive: true
+                echo "❌ Failed."
+            }
+        }
+    }
+}
