@@ -58,7 +58,6 @@ module.exports = {
       repository_url: {
         type: Sequelize.STRING(500),
         allowNull: false,
-        unique: true,
       },
       status: {
         type: Sequelize.ENUM("active", "inactive", "archived"),
@@ -346,7 +345,7 @@ module.exports = {
         defaultValue: Sequelize.UUIDV4,
       },
       key_name: { type: Sequelize.STRING(128), allowNull: false, unique: true },
-      value_text: { type: Sequelize.TEXT("long"), allowNull: true },
+      value_text: { type: Sequelize.TEXT, allowNull: true },
       category: {
         type: Sequelize.STRING(64),
         allowNull: false,
@@ -439,5 +438,22 @@ module.exports = {
     await queryInterface.dropTable("project_env_profiles");
     await queryInterface.dropTable("projects");
     await queryInterface.dropTable("users");
+
+    if (queryInterface.sequelize.options.dialect === 'postgres') {
+      const enums = [
+        'enum_users_role',
+        'enum_users_status',
+        'enum_projects_status',
+        'enum_projects_tag',
+        'enum_nodes_role',
+        'enum_nodes_type',
+        'enum_nodes_build_status',
+        'enum_nodes_status',
+        'enum_nodes_environment'
+      ];
+      for (const enumType of enums) {
+        await queryInterface.sequelize.query(`DROP TYPE IF EXISTS "${enumType}";`);
+      }
+    }
   },
 };

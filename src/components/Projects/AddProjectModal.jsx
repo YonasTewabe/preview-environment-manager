@@ -180,7 +180,7 @@ const AddProjectModal = ({ visible, project, onSubmit, onCancel, isEdit }) => {
                 { required: true, message: "Please enter a short code" },
                 {
                   min: 2,
-                  max: 10,
+                  max: 35,
                   message: "Short code must be 2–10 characters",
                 },
                 {

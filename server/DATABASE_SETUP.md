@@ -1,15 +1,15 @@
 # Database Setup for Preview Builder
 
-This project now supports MySQL database for storing projects, users, backend nodes, and frontend nodes data.
+This project now supports PostgreSQL database for storing projects, users, backend nodes, and frontend nodes data.
 
 ## Prerequisites
 
-1. **MySQL Server**: Make sure you have MySQL installed and running on your system
-2. **Node.js Dependencies**: The required packages (`mysql2`, `sequelize`) are already installed
+1. **PostgreSQL Server**: Make sure you have PostgreSQL installed and running on your system
+2. **Node.js Dependencies**: The required packages (`pg`, `pg-hstore`, `sequelize`) are already installed
 
 ## Database Configuration
 
-1. **Create Database**: First, create a MySQL database named `preview_builder`:
+1. **Create Database**: First, create a PostgreSQL database named `preview_builder` (using pgAdmin, psql, or another client):
    ```sql
    CREATE DATABASE preview_builder;
    ```
@@ -18,8 +18,8 @@ This project now supports MySQL database for storing projects, users, backend no
    ```env
    # Database Configuration
    DB_HOST=localhost
-   DB_PORT=3306
-   DB_USERNAME=root
+   DB_PORT=5432
+   DB_USERNAME=postgres
    DB_PASSWORD=your_password_here
    DB_NAME=preview_builder
 

@@ -4,10 +4,10 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const sequelize = new Sequelize({
-  dialect: 'mysql',
+  dialect: 'postgres',
   host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  username: process.env.DB_USERNAME || 'root',
+  port: process.env.DB_PORT || 5432,
+  username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'preview_builder',
   logging: false,

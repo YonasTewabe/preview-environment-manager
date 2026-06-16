@@ -1,4 +1,5 @@
 import { testConnection, syncDatabase, User } from '../models/index.js';
+import { Op } from 'sequelize';
 
 const initializeDatabase = async () => {
   // Test connection
@@ -9,18 +10,29 @@ const initializeDatabase = async () => {
   
   // Create default admin user
   try {
-    const existingAdmin = await User.findOne({ where: { username: 'admin' } });
+    // Clean up any old duplicate admin user
+    await User.destroy({ where: { email: 'admin@preview-builder.local' } });
+    
+    const existingAdmin = await User.findOne({ 
+      where: { 
+        [Op.or]: [
+          { username: 'admin' },
+          { email: 'admin@example.com' }
+        ]
+      } 
+    });
     
     if (!existingAdmin) {
       await User.create({
         username: 'admin',
-        email: 'admin@preview-builder.local',
-        first_name: 'Admin',
-        last_name: 'User',
+        email: 'admin@example.com',
+        first_name: 'admin',
+        last_name: 'admin',
         role: 'admin',
         status: 'active',
-        password: 'admin' // Note: In production, this should be properly hashed
+        password: '%TGBnhy6'
       });
+      console.log('✅ Default admin user created successfully.');
     }
   } catch (error) {
     console.error('❌ Error creating admin user:', error);

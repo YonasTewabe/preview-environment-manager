@@ -15,7 +15,7 @@ const Configuration = sequelize.define(
       unique: true,
     },
     value_text: {
-      type: DataTypes.TEXT("long"),
+      type: DataTypes.TEXT,
       allowNull: true,
     },
     category: {
