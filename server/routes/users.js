@@ -2,11 +2,12 @@ import express from "express";
 import bcrypt from "bcrypt";
 import { User } from "../models/index.js";
 import emailService from "../services/emailService.js";
+import { authenticateToken, isAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
 // GET /api/users - Get all users
-router.get("/", async (req, res) => {
+router.get("/", authenticateToken, isAdmin, async (req, res) => {
   try {
     const users = await User.findAll({
       attributes: { exclude: ['password'] }, // Don't return password hash
@@ -20,8 +21,11 @@ router.get("/", async (req, res) => {
 });
 
 // GET /api/users/:id - Get a specific user
-router.get("/:id", async (req, res) => {
+router.get("/:id", authenticateToken, async (req, res) => {
   try {
+    if (req.user.role !== 'admin' && req.user.id !== req.params.id) {
+      return res.status(403).json({ error: "Access denied" });
+    }
     const user = await User.findByPk(req.params.id, {
       attributes: { exclude: ['password'] },
     });
@@ -38,9 +42,12 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST /api/users - Create a new user
-router.post("/", async (req, res) => {
+router.post("/", authenticateToken, isAdmin, async (req, res) => {
   try {
     const {email, first_name, last_name, role } = req.body;
+    if (role && role !== 'admin' && role !== 'user') {
+      return res.status(400).json({ error: "Invalid role. Must be 'admin' or 'user'" });
+    }
     const username = email.split('@')[0];
     if (!username || !email) {
       return res.status(400).json({ error: "Username and email are required" });
@@ -93,7 +100,7 @@ router.post("/", async (req, res) => {
 });
 
 // PUT /api/users/:id - Update a user
-router.put("/:id", async (req, res) => {
+router.put("/:id", authenticateToken, async (req, res) => {
   try {
     const { username, email, first_name, last_name, role, status } = req.body;
     
@@ -102,14 +109,30 @@ router.put("/:id", async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
-    await user.update({
+    if (req.user.role !== 'admin' && req.user.id !== req.params.id) {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    const updateData = {
       username,
       email,
       first_name,
       last_name,
-      role,
-      status,
-    });
+    };
+
+    if (req.user.role === 'admin') {
+      if (role) {
+        if (role !== 'admin' && role !== 'user') {
+          return res.status(400).json({ error: "Invalid role. Must be 'admin' or 'user'" });
+        }
+        updateData.role = role;
+      }
+      if (status) {
+        updateData.status = status;
+      }
+    }
+
+    await user.update(updateData);
 
     // Return user without password hash
     const userResponse = user.toJSON();
@@ -129,7 +152,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE /api/users/:id - Delete a user
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", authenticateToken, isAdmin, async (req, res) => {
   try {
     const user = await User.findByPk(req.params.id);
     if (!user) {
@@ -145,9 +168,13 @@ router.delete("/:id", async (req, res) => {
 });
 
 // PUT /api/users/:id/change-password - Change user password
-router.put("/:id/change-password", async (req, res) => {
+router.put("/:id/change-password", authenticateToken, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
+    
+    if (req.user.role !== 'admin' && req.user.id !== req.params.id) {
+      return res.status(403).json({ error: "Access denied" });
+    }
     
     if (!currentPassword || !newPassword) {
       return res.status(400).json({ error: "Current password and new password are required" });

@@ -24,8 +24,9 @@ const Sidebar = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const { isDark } = useTheme();
+  const isAdmin = user?.role === 'admin';
 
   const handleLogout = () => {
     logout();
@@ -66,21 +67,23 @@ const Sidebar = ({
     {
       type: "divider",
     },
-    {
-      key: "/users",
-      icon: <TeamOutlined style={{ fontSize: "18px" }} />,
-      label: "User management",
-      onClick: () => navigate("/users"),
-    },
-    {
-      key: "/settings",
-      icon: <SettingOutlined style={{ fontSize: "18px" }} />,
-      label: "System settings",
-      onClick: () => navigate("/settings"),
-    },
-    {
-      type: "divider",
-    },
+    ...(isAdmin ? [
+      {
+        key: "/users",
+        icon: <TeamOutlined style={{ fontSize: "18px" }} />,
+        label: "User management",
+        onClick: () => navigate("/users"),
+      },
+      {
+        key: "/settings",
+        icon: <SettingOutlined style={{ fontSize: "18px" }} />,
+        label: "System settings",
+        onClick: () => navigate("/settings"),
+      },
+      {
+        type: "divider",
+      }
+    ] : []),
     {
       key: "/trash",
       icon: <DeleteOutlined style={{ fontSize: "18px" }} />,

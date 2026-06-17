@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Modal, Form, Input, Row, Col } from 'antd';
+import { Modal, Form, Input, Row, Col, Select, Switch } from 'antd';
 import { UserOutlined, MailOutlined } from '@ant-design/icons';
 
 const UserFormModal = ({ 
@@ -14,15 +14,16 @@ const UserFormModal = ({
   useEffect(() => {
     if (visible) {
       if (initialValues) {
-        const { role: _role, ...editable } = initialValues;
         form.setFieldsValue({
-          ...editable,
+          ...initialValues,
+          role: initialValues.role || 'user',
           status: String(initialValues.status ?? '').toLowerCase() === 'active',
         });
       } else {
         // Creating new user
         form.resetFields();
         form.setFieldsValue({
+          role: 'user',
           status: true // Default to active
         });
       }
@@ -199,6 +200,47 @@ const UserFormModal = ({
                   placeholder="Enter email address"
                   size="large"
                   className="!rounded-lg"
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="role"
+                label={
+                  <span className="text-gray-700 font-medium">
+                    Role
+                  </span>
+                }
+                rules={[
+                  { 
+                    required: true, 
+                    message: 'Please select a role' 
+                  }
+                ]}
+              >
+                <Select size="large" className="rounded-lg">
+                  <Select.Option value="user">User</Select.Option>
+                  <Select.Option value="admin">Admin</Select.Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item
+                name="status"
+                label={
+                  <span className="text-gray-700 font-medium">
+                    Status
+                  </span>
+                }
+                valuePropName="checked"
+              >
+                <Switch 
+                  checkedChildren="Active" 
+                  unCheckedChildren="Inactive"
+                  size="large"
                 />
               </Form.Item>
             </Col>

@@ -104,13 +104,11 @@ const UserManagement = () => {
     deleteUserMutation.mutate(userId);
   };
 
-  // Handle form submission (create/update) — role is not managed in UI; keep existing on edit
+  // Handle form submission (create/update)
   const handleFormSubmit = (values) => {
-    const payload =
-      editingUser != null ? { ...values, role: editingUser.role } : values;
     if (editingUser) {
       updateUserMutation.mutate(
-        { id: editingUser.id, ...payload },
+        { id: editingUser.id, ...values },
         {
           onSuccess: () => {
             setModalVisible(false);
@@ -119,7 +117,7 @@ const UserManagement = () => {
         },
       );
     } else {
-      createUserMutation.mutate(payload, {
+      createUserMutation.mutate(values, {
         onSuccess: () => {
           setModalVisible(false);
           setEditingUser(null);
@@ -171,6 +169,23 @@ const UserManagement = () => {
       render: (email) => (
         <span className="text-blue-600 dark:text-blue-400">{email}</span>
       ),
+    },
+    {
+      title: "Role",
+      dataIndex: "role",
+      key: "role",
+      filters: [
+        { text: "Admin", value: "admin" },
+        { text: "User", value: "user" },
+      ],
+      onFilter: (value, record) =>
+        String(record.role ?? "").toLowerCase() ===
+        String(value).toLowerCase(),
+      render: (role) => {
+        const displayRole = role === 'admin' ? 'Admin' : 'User';
+        const color = role === 'admin' ? 'volcano' : 'blue';
+        return <Tag color={color}>{displayRole}</Tag>;
+      },
     },
     {
       title: "Status",

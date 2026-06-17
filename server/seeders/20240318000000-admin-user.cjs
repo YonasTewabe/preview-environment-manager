@@ -9,44 +9,72 @@ module.exports = {
       email: 'admin@preview-builder.local'
     }, {});
 
-    // Check if admin user already exists
-    const [existing] = await queryInterface.sequelize.query(
-      `SELECT id FROM users WHERE username = 'admin' OR email = 'admin@example.com' LIMIT 1;`
-    );
-
-    if (existing && existing.length > 0) {
-      console.log('ℹ️ Admin user already exists, skipping seeding.');
-      return;
-    }
-
-    // Hash the password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash('%TGBnhy6', salt);
 
-    // Create admin user
-    await queryInterface.bulkInsert('users', [{
-      id: uuidv4(),
-      username: 'admin',
-      first_name: 'admin',
-      last_name: 'admin',
-      email: 'admin@example.com',
-      password: hashedPassword,
-      role: 'admin',
-      status: 'active',
-      last_login: null,
-      email_verified: true,
-      email_verification_token: null,
-      reset_password_token: null,
-      reset_password_expires: null,
-      created_at: new Date(),
-      updated_at: new Date()
-    }], {});
+    // Check if admin user already exists
+    const [existingAdmin] = await queryInterface.sequelize.query(
+      `SELECT id FROM users WHERE username = 'admin' OR email = 'admin@example.com' LIMIT 1;`
+    );
+
+    if (!existingAdmin || existingAdmin.length === 0) {
+      // Create admin user
+      await queryInterface.bulkInsert('users', [{
+        id: uuidv4(),
+        username: 'admin',
+        first_name: 'admin',
+        last_name: 'admin',
+        email: 'admin@example.com',
+        password: hashedPassword,
+        role: 'admin',
+        status: 'active',
+        last_login: null,
+        email_verified: true,
+        email_verification_token: null,
+        reset_password_token: null,
+        reset_password_expires: null,
+        created_at: new Date(),
+        updated_at: new Date()
+      }], {});
+      console.log('✅ Seeded default admin user');
+    }
+
+    // Check if regular user already exists
+    const [existingUser] = await queryInterface.sequelize.query(
+      `SELECT id FROM users WHERE username = 'user' OR email = 'user@example.com' LIMIT 1;`
+    );
+
+    if (!existingUser || existingUser.length === 0) {
+      // Create regular user
+      await queryInterface.bulkInsert('users', [{
+        id: uuidv4(),
+        username: 'user',
+        first_name: 'user',
+        last_name: 'user',
+        email: 'user@example.com',
+        password: hashedPassword,
+        role: 'user',
+        status: 'active',
+        last_login: null,
+        email_verified: true,
+        email_verification_token: null,
+        reset_password_token: null,
+        reset_password_expires: null,
+        created_at: new Date(),
+        updated_at: new Date()
+      }], {});
+      console.log('✅ Seeded default regular user');
+    }
   },
 
   async down(queryInterface, Sequelize) {
-    // Remove the admin user
+    // Remove the seeded users
     await queryInterface.bulkDelete('users', {
       email: 'admin@example.com'
     }, {});
+    await queryInterface.bulkDelete('users', {
+      email: 'user@example.com'
+    }, {});
   }
 };
+

@@ -1,7 +1,11 @@
 import express from "express";
 import configurationService from "../services/configurationService.js";
+import { authenticateToken, isAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
+
+router.use(authenticateToken);
+router.use(isAdmin);
 
 function wantsSecrets(req) {
   const raw = String(req.query?.includeSecrets ?? "").toLowerCase().trim();

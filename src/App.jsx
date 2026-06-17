@@ -95,7 +95,7 @@ function App() {
               <Route 
                 path="/users" 
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute adminOnly={true}>
                     <MainLayout>
                       <UserManagement />
                     </MainLayout>
@@ -115,7 +115,7 @@ function App() {
               <Route
                 path="/settings"
                 element={
-                  <ProtectedRoute>
+                  <ProtectedRoute adminOnly={true}>
                     <MainLayout>
                       <SystemSettings />
                     </MainLayout>
